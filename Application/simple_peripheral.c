@@ -610,9 +610,6 @@ static void SimpleBLEPeripheral_taskFxn(UArg a0, UArg a1)
   // Initialize application
   SimpleBLEPeripheral_init();
 
-  //Initialize the RSA part of the application
-  RSA_init();
-
   // Application main loop
   for (;;)
   {

@@ -1,1 +1,0 @@
-simple_peripheral_cc1350lp_app_FlashROM

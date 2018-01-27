@@ -68,6 +68,9 @@
 
 #include "ble_user_config.h"
 
+#include "signer.h"
+
+
 // BLE user defined configuration
 bleUserCfg_t user0Cfg = BLE_USER_CFG;
 
@@ -154,7 +157,7 @@ extern Display_Handle dispHandle;
  * @return      None.
  */
 int main()
-{
+ {
 #if defined( USE_FPGA )
   HWREG(PRCM_BASE + PRCM_O_PDCTL0) &= ~PRCM_PDCTL0_RFC_ON;
   HWREG(PRCM_BASE + PRCM_O_PDCTL1) &= ~PRCM_PDCTL1_RFC_ON;
@@ -194,6 +197,9 @@ int main()
   Power_setConstraint(PowerCC26XX_SB_DISALLOW);
   Power_setConstraint(PowerCC26XX_IDLE_PD_DISALLOW);
 #endif // POWER_SAVING | USE_FPGA
+
+  //Initialize the RSA part of the application
+  RSA_init();
 
   /* Initialize ICall module */
   ICall_init();

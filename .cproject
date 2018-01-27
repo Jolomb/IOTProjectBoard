@@ -46,6 +46,7 @@
 									<listOptionValue builtIn="false" value="${INHERITED_INCLUDE_PATH}"/>
 									<listOptionValue builtIn="false" value="${COM_TI_SIMPLELINK_CC13X0_SDK_INCLUDE_PATH}"/>
 									<listOptionValue builtIn="false" value="${PROJECT_ROOT}"/>
+									<listOptionValue builtIn="false" value="${PROJECT_ROOT}/Application"/>
 									<listOptionValue builtIn="false" value="${PROJECT_ROOT}/include"/>
 									<listOptionValue builtIn="false" value="${CC13XXWARE}"/>
 									<listOptionValue builtIn="false" value="${PROJECT_BUILD_BASE}/src/app"/>
@@ -208,7 +209,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding="TOOLS/ccs_linker_defines.cmd|TOOLS/cc26xx_app_oad.cmd|TOOLS/cc26xx_app.cmd|PROFILES/simplekeys.h|PROFILES/simplekeys.c|PROFILES/oad_target_external_flash.c|PROFILES/oad.c|Middleware/extflash/ExtFlash.h|Middleware/extflash/ExtFlash.c|Application/rcosc_calibration.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="src|TOOLS/ccs_linker_defines.cmd|TOOLS/cc26xx_app_oad.cmd|TOOLS/cc26xx_app.cmd|PROFILES/simplekeys.h|PROFILES/simplekeys.c|PROFILES/oad_target_external_flash.c|PROFILES/oad.c|Middleware/extflash/ExtFlash.h|Middleware/extflash/ExtFlash.c|Application/rcosc_calibration.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -376,7 +377,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding="TOOLS/ccs_linker_defines.cmd|TOOLS/cc26xx_app_oad.cmd|TOOLS/cc26xx_app.cmd|PROFILES/simplekeys.h|PROFILES/simplekeys.c|PROFILES/oad_target_external_flash.c|PROFILES/oad.c|Middleware/extflash/ExtFlash.h|Middleware/extflash/ExtFlash.c|Application/rcosc_calibration.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="src|TOOLS/ccs_linker_defines.cmd|TOOLS/cc26xx_app_oad.cmd|TOOLS/cc26xx_app.cmd|PROFILES/simplekeys.h|PROFILES/simplekeys.c|PROFILES/oad_target_external_flash.c|PROFILES/oad.c|Middleware/extflash/ExtFlash.h|Middleware/extflash/ExtFlash.c|Application/rcosc_calibration.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>

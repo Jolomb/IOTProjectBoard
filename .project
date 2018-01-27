@@ -193,11 +193,6 @@
 			<locationURI>PROJECT_BUILD_BASE/tirtos/iar/config/ccfg_app_ble.c</locationURI>
 		</link>
 		<link>
-			<name>TOOLS/app_ble.cfg</name>
-			<type>1</type>
-			<locationURI>PROJECT_BUILD_BASE/tirtos/ccs/config/app_ble.cfg</locationURI>
-		</link>
-		<link>
 			<name>TOOLS/cc26xx_app.cmd</name>
 			<type>1</type>
 			<locationURI>TI_BLE_SDK_BASE/source/ti/blestack/common/cc26xx/ccs/cc26xx_app.cmd</locationURI>
