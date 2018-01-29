@@ -1,3 +1,5 @@
+#include <xdc/runtime/system.h>
+
 #include "signer.h"
 #include "mbedtls/pk.h"
 #include <time.h>
@@ -50,6 +52,6 @@ void RSA_init() {
         rsa_state = 0;
 
     }
-
+    System_printf("RSA init ok: %d\n", rsa_state);
     return;
 }

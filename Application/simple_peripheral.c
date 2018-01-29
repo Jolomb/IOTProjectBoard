@@ -49,6 +49,7 @@
  * INCLUDES
  */
 #include <string.h>
+#include <xdc/runtime/system.h>
 
 #include <ti/sysbios/knl/Task.h>
 #include <ti/sysbios/knl/Clock.h>
@@ -181,7 +182,7 @@
 
 
 #ifndef SBP_TASK_STACK_SIZE
-#define SBP_TASK_STACK_SIZE                   644
+#define SBP_TASK_STACK_SIZE                   800
 #endif
 
 // Internal Events for RTOS application
@@ -423,7 +424,9 @@ static void SimpleBLEPeripheral_init(void)
   // ******************************************************************
   // Register the current thread as an ICall dispatcher application
   // so that the application can send and receive messages.
+  System_printf("About to register\n");
   ICall_registerApp(&selfEntity, &sem);
+  System_printf("ICALL register done\n");
 
 #ifdef USE_RCOSC
   RCOSC_enableCalibration();
@@ -456,8 +459,10 @@ static void SimpleBLEPeripheral_init(void)
 
   dispHandle = Display_open(SBP_DISPLAY_TYPE, NULL);
 
+  System_printf("About to set GAP\n");
   // Setup the GAP
   GAP_SetParamValue(TGAP_CONN_PAUSE_PERIPHERAL, DEFAULT_CONN_PAUSE_PERIPHERAL);
+  System_printf("GAP set\n");
 
   // Setup the GAP Peripheral Role Profile
   {
@@ -497,8 +502,10 @@ static void SimpleBLEPeripheral_init(void)
                          &desiredConnTimeout);
   }
 
+  System_printf("About to set GGS\n");
   // Set the GAP Characteristics
   GGS_SetParameter(GGS_DEVICE_NAME_ATT, GAP_DEVICE_NAME_LEN, attDeviceName);
+  System_printf("GGS set\n");
 
   // Set advertising interval
   {
@@ -526,10 +533,12 @@ static void SimpleBLEPeripheral_init(void)
     GAPBondMgr_SetParameter(GAPBOND_BONDING_ENABLED, sizeof(uint8_t), &bonding);
   }
 
+  System_printf("About to set GATT services\n");
    // Initialize GATT attributes
   GGS_AddService(GATT_ALL_SERVICES);           // GAP
   GATTServApp_AddService(GATT_ALL_SERVICES);   // GATT attributes
   DevInfo_AddService();                        // Device Information Service
+  System_printf("GATT services set\n");
 
 #ifndef FEATURE_OAD_ONCHIP
   SimpleProfile_AddService(GATT_ALL_SERVICES); // Simple GATT Profile
@@ -549,26 +558,19 @@ static void SimpleBLEPeripheral_init(void)
 #ifndef FEATURE_OAD_ONCHIP
   // Setup the SimpleProfile Characteristic Values
   {
-    uint8_t charValue1 = 1;
-    uint8_t charValue2 = 2;
-    uint8_t charValue3 = 3;
-    uint8_t charValue4 = 4;
-    uint8_t charValue5[SIMPLEPROFILE_CHAR5_LEN] = { 1, 2, 3, 4, 5 };
+    uint8_t userChallangeCharValue[USER_CHALLANGE_CHAR_LENGTH] = {0};
+    uint8_t ResponseCharValue[SERVER_RESPONSE_CHAR_LENGTH] = {0};
 
-    SimpleProfile_SetParameter(SIMPLEPROFILE_CHAR1, sizeof(uint8_t),
-                               &charValue1);
-    SimpleProfile_SetParameter(SIMPLEPROFILE_CHAR2, sizeof(uint8_t),
-                               &charValue2);
-    SimpleProfile_SetParameter(SIMPLEPROFILE_CHAR3, sizeof(uint8_t),
-                               &charValue3);
-    SimpleProfile_SetParameter(SIMPLEPROFILE_CHAR4, sizeof(uint8_t),
-                               &charValue4);
-    SimpleProfile_SetParameter(SIMPLEPROFILE_CHAR5, SIMPLEPROFILE_CHAR5_LEN,
-                               charValue5);
+    SimpleProfile_SetParameter(USER_CHALLANGE_CHAR_VALUE, USER_CHALLANGE_CHAR_LENGTH,
+                               userChallangeCharValue);
+    SimpleProfile_SetParameter(SERVER_RESPONSE_CHAR_VALUE, SERVER_RESPONSE_CHAR_LENGTH,
+                               ResponseCharValue);
+
   }
 
   // Register callback with SimpleGATTprofile
   SimpleProfile_RegisterAppCBs(&SimpleBLEPeripheral_simpleProfileCBs);
+  System_printf("Registered the callbacks\n");
 #endif //!FEATURE_OAD_ONCHIP
 
   // Start the Device
@@ -607,8 +609,12 @@ static void SimpleBLEPeripheral_init(void)
  */
 static void SimpleBLEPeripheral_taskFxn(UArg a0, UArg a1)
 {
+
+  System_printf("SimplePeripheral_init waiting\n");
   // Initialize application
   SimpleBLEPeripheral_init();
+
+  System_printf("SimplePeripheral_init done\n");
 
   // Application main loop
   for (;;)
@@ -1111,21 +1117,18 @@ static void SimpleBLEPeripheral_charValueChangeCB(uint8_t paramID)
 static void SimpleBLEPeripheral_processCharValueChangeEvt(uint8_t paramID)
 {
 #ifndef FEATURE_OAD_ONCHIP
-  uint8_t newValue;
 
+  uint8 new_value[SERVER_RESPONSE_CHAR_LENGTH];
   switch(paramID)
   {
-    case SIMPLEPROFILE_CHAR1:
-      SimpleProfile_GetParameter(SIMPLEPROFILE_CHAR1, &newValue);
+    case USER_CHALLANGE_CHAR_VALUE:
 
-      Display_print1(dispHandle, 4, 0, "Char 1: %d", (uint16_t)newValue);
-      break;
+        SimpleProfile_GetParameter(USER_CHALLANGE_CHAR_VALUE, new_value);
+        break;
 
-    case SIMPLEPROFILE_CHAR3:
-      SimpleProfile_GetParameter(SIMPLEPROFILE_CHAR3, &newValue);
-
-      Display_print1(dispHandle, 4, 0, "Char 3: %d", (uint16_t)newValue);
-      break;
+    case SERVER_RESPONSE_CHAR_VALUE:
+        SimpleProfile_GetParameter(SERVER_RESPONSE_CHAR_VALUE, new_value);
+        break;
 
     default:
       // should not reach here!
@@ -1150,18 +1153,11 @@ static void SimpleBLEPeripheral_processCharValueChangeEvt(uint8_t paramID)
 static void SimpleBLEPeripheral_performPeriodicTask(void)
 {
 #ifndef FEATURE_OAD_ONCHIP
-  uint8_t valueToCopy;
+  //uint8_t valueToCopy;
 
-  // Call to retrieve the value of the third characteristic in the profile
-  if (SimpleProfile_GetParameter(SIMPLEPROFILE_CHAR3, &valueToCopy) == SUCCESS)
-  {
-    // Call to set that value of the fourth characteristic in the profile.
-    // Note that if notifications of the fourth characteristic have been
-    // enabled by a GATT client device, then a notification will be sent
-    // every time this function is called.
-    SimpleProfile_SetParameter(SIMPLEPROFILE_CHAR4, sizeof(uint8_t),
-                               &valueToCopy);
-  }
+
+  //TODO: Perform some sort of periodic task?
+
 #endif //!FEATURE_OAD_ONCHIP
 }
 

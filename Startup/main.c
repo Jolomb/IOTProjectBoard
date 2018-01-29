@@ -49,10 +49,14 @@
  */
 
 #include <xdc/runtime/Error.h>
+#include <xdc/runtime/System.h>
+#include <xdc/std.h>
 
 #include <ti/drivers/Power.h>
 #include <ti/drivers/power/PowerCC26XX.h>
 #include <ti/sysbios/BIOS.h>
+#include <stdio.h>
+
 
 #include "icall.h"
 #include "hal_assert.h"
@@ -158,6 +162,8 @@ extern Display_Handle dispHandle;
  */
 int main()
  {
+    System_printf("Main started\n");
+
 #if defined( USE_FPGA )
   HWREG(PRCM_BASE + PRCM_O_PDCTL0) &= ~PRCM_PDCTL0_RFC_ON;
   HWREG(PRCM_BASE + PRCM_O_PDCTL1) &= ~PRCM_PDCTL1_RFC_ON;
@@ -210,7 +216,10 @@ int main()
   /* Kick off profile - Priority 3 */
   GAPRole_createTask();
 
+  /* The task for our application with priotiy 1 (Lowest) */
   SimpleBLEPeripheral_createTask();
+
+  System_printf("BIOS_start will be called\n");
 
   /* enable interrupts and start SYS/BIOS */
   BIOS_start();
