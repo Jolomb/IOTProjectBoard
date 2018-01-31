@@ -11,4 +11,9 @@ void RSA_init();
  */
 int is_RSA_read();
 
-#endif
+/*
+ * Perform a SHA256 signature for the input buffer
+ */
+int RSA_sign(const unsigned char *input, size_t input_len);
+
+#endif // SIGNER_H__

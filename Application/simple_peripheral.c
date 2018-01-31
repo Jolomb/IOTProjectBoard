@@ -182,7 +182,7 @@
 
 
 #ifndef SBP_TASK_STACK_SIZE
-#define SBP_TASK_STACK_SIZE                   800
+#define SBP_TASK_STACK_SIZE                   1024
 #endif
 
 // Internal Events for RTOS application
@@ -668,6 +668,7 @@ static void SimpleBLEPeripheral_taskFxn(UArg a0, UArg a1)
         sbpEvt_t *pMsg = (sbpEvt_t *)Util_dequeueMsg(appMsgQueue);
         if (pMsg)
         {
+          System_printf("Task loop dealing with a new ICALL msg from queue\n");
           // Process message.
           SimpleBLEPeripheral_processAppMsg(pMsg);
 
@@ -1100,6 +1101,7 @@ static void SimpleBLEPeripheral_processStateChangeEvt(gaprole_States_t newState)
  */
 static void SimpleBLEPeripheral_charValueChangeCB(uint8_t paramID)
 {
+  System_printf("SimplePeripheral char value has changed. Enqueueing msg: %d\n", paramID);
   SimpleBLEPeripheral_enqueueMsg(SBP_CHAR_CHANGE_EVT, paramID);
 }
 #endif //!FEATURE_OAD_ONCHIP
@@ -1122,8 +1124,12 @@ static void SimpleBLEPeripheral_processCharValueChangeEvt(uint8_t paramID)
   switch(paramID)
   {
     case USER_CHALLANGE_CHAR_VALUE:
-
+        System_printf("Dealing with value change of User Challange Char\n");
         SimpleProfile_GetParameter(USER_CHALLANGE_CHAR_VALUE, new_value);
+
+        // Sign the challange we got from the server
+        RSA_sign(new_value, USER_CHALLANGE_CHAR_LENGTH);
+
         break;
 
     case SERVER_RESPONSE_CHAR_VALUE:

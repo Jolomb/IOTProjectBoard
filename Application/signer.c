@@ -2,7 +2,9 @@
 
 #include "signer.h"
 #include "mbedtls/pk.h"
+#include "mbedtls/md.h"
 #include <time.h>
+#include <stdlib.h>
 
 // The private key context that will be used for the entire encryption
 mbedtls_pk_context privateKey;
@@ -55,3 +57,61 @@ void RSA_init() {
     System_printf("RSA init ok: %d\n", rsa_state);
     return;
 }
+
+int RSA_sign(const unsigned char *input, size_t input_len) {
+    // Will be used to check all sort of return values
+    int ret;
+
+    unsigned char *sig_result_buf, *input_hash;
+    sig_result_buf = NULL;
+    input_hash = NULL;
+    size_t sig_result_len = 0;
+
+    // SHA256 requires 32 bytes on the stack!
+    input_hash = calloc(32, sizeof(unsigned char));
+    if ( input_hash == NULL ){
+        System_printf("Failed to allocate buffer for HASH from heap\n");
+        return -1;
+    }
+
+    if ( is_RSA_read() != 0 ) {
+        // We can't start encrypting before we have set the RSA key state
+        System_printf("Can't perform pk_sign before we initialize the PK\n");
+        goto error_cleanup;
+    }
+
+    // Perform SHA256 to the input data
+    ret = mbedtls_md( mbedtls_md_info_from_type( MBEDTLS_MD_SHA256 ), input, input_len, input_hash);
+    if ( ret != 0) {
+        System_printf("SHA256 failed on input\n");
+        goto error_cleanup;
+    }
+    System_printf("SHA256 done on input of length %d\n", input, input_len);
+
+    sig_result_buf = calloc(MBEDTLS_MPI_MAX_SIZE, sizeof(unsigned char));
+    if ( sig_result_buf == NULL ) {
+        System_printf("Failed to allocate signature result buffer\n");
+        goto error_cleanup;
+    }
+
+    //TODO: Unserstand why we need entropy in here??
+    ret = mbedtls_pk_sign( &private,
+                           MBEDTLS_MD_SHA256,
+                           input_hash,
+                           0,
+                           sig_result_buf,
+                           &sig_result_len, f_rng, p_rng)
+
+    System_printf("Finished RSA_sign\n");
+    free(input_hash);
+    return 0;
+
+error_cleanup:
+    if (input_has)
+        free(input_hash);
+
+    if (sig_result_buf)
+        free(sig_result_buf);
+    return -1;
+}
+
