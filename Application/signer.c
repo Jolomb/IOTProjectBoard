@@ -1,10 +1,16 @@
 #include <xdc/runtime/system.h>
-
-#include "signer.h"
-#include "mbedtls/pk.h"
-#include "mbedtls/md.h"
 #include <time.h>
 #include <stdlib.h>
+#include <driverlib/trng.h>
+
+
+#include "signer.h"
+
+#include "mbedtls/pk.h"
+#include "mbedtls/md.h"
+#include "mbedtls/entropy.h"
+#include "mbedtls/ctr_drbg.h"
+#include "mbedtls/aes.h"
 
 // The private key context that will be used for the entire encryption
 mbedtls_pk_context privateKey;
@@ -29,6 +35,15 @@ const unsigned char keyBuffer[PRIVATE_KEY_BUFFER_LEN] = {
      'j', 'K', 'i', 'k', 'A', 'L', 'o', 'z', '4', 'M', 'L', 'e', 'H', 'L', 'F', 'N', 'k', 'w', 'E', 'H', 'X', 'C', '0', 'R', '3', 'c', 'n', '3', '+', 'v', 'Z', 'z', 'N', 'F', '6', 'g', '0', 'U', 'p', 'h', 'y', 'C', 'Y', '=', '\n',
      '-', '-', '-', '-', '-', 'E', 'N', 'D', ' ', 'R', 'S', 'A', ' ', 'P', 'R', 'I', 'V', 'A', 'T', 'E', ' ', 'K', 'E', 'Y', '-', '-', '-', '-', '-', '\n', 0x00
 };
+
+int initialize_TRNG() {
+
+    // Maximum entropy in each number generated
+    TRNGConfigure(0, 0, 0);
+    TRNGEnable();
+
+    return 0;
+}
 
 int is_RSA_read() {
 
@@ -55,23 +70,44 @@ void RSA_init() {
 
     }
     System_printf("RSA init ok: %d\n", rsa_state);
+
     return;
+}
+
+int AES_encrypt(const unsiged char *input, size_t input_len) {
+
 }
 
 int RSA_sign(const unsigned char *input, size_t input_len) {
     // Will be used to check all sort of return values
     int ret;
 
+    // We use a random counter mode to sign the message
+    mbedtls_entropy_context entropy;
+    mbedtls_ctr_drbg_context ctr_drbg;
+    mbedtls_entropy_init( &entropy );
+    mbedtls_ctr_drbg_init( &ctr_drbg );
+
     unsigned char *sig_result_buf, *input_hash;
     sig_result_buf = NULL;
     input_hash = NULL;
     size_t sig_result_len = 0;
 
+    // The counter works with AES module
+    ret = mbedtls_ctr_drbg_seed( &ctr_drbg,
+                                 mbedtls_entropy_func,
+                                 &entropy,
+                                 NULL, 0);
+    if (ret != 0) {
+           System_printf("Failed to seed the entropy source\n");
+           goto error_cleanup;
+       }
+
     // SHA256 requires 32 bytes on the stack!
     input_hash = calloc(32, sizeof(unsigned char));
     if ( input_hash == NULL ){
         System_printf("Failed to allocate buffer for HASH from heap\n");
-        return -1;
+        goto error_cleanup;
     }
 
     if ( is_RSA_read() != 0 ) {
@@ -95,23 +131,31 @@ int RSA_sign(const unsigned char *input, size_t input_len) {
     }
 
     //TODO: Unserstand why we need entropy in here??
-    ret = mbedtls_pk_sign( &private,
+    ret = mbedtls_pk_sign( &privateKey,
                            MBEDTLS_MD_SHA256,
                            input_hash,
                            0,
                            sig_result_buf,
-                           &sig_result_len, f_rng, p_rng)
+                           &sig_result_len,
+                           mbedtls_ctr_drbg_random,
+                           &ctr_drbg);
 
     System_printf("Finished RSA_sign\n");
-    free(input_hash);
-    return 0;
+    ret = 0;
+    goto cleanup;
 
 error_cleanup:
-    if (input_has)
+    ret = -1;
+cleanup:
+    if (input_hash)
         free(input_hash);
 
     if (sig_result_buf)
         free(sig_result_buf);
-    return -1;
+
+    // Release the counters we used for the signature
+    mbedtls_ctr_drbg_free( &ctr_drbg );
+    mbedtls_entropy_free( &entropy );
+    return ret;
 }
 

@@ -16,4 +16,9 @@ int is_RSA_read();
  */
 int RSA_sign(const unsigned char *input, size_t input_len);
 
+/*
+ * Initializes the True Random Generator hardware the board has
+ */
+int initialize_TRNG();
+
 #endif // SIGNER_H__
