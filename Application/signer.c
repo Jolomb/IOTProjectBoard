@@ -74,8 +74,19 @@ void RSA_init() {
     return;
 }
 
-int AES_encrypt(const unsiged char *input, size_t input_len) {
+int AES_encrypt(const unsigned char *input, size_t input_len, unsigned char *output_buffer, size_t output_len) {
+    // Currently we use a fixed key. This is only a test function anyway
+    unsigned char key[16] = { 0x0, 0x01, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf };
 
+    if (output_len != 16) {
+        return -1;
+    }
+
+    mbedtls_aes_context ctx;
+    mbedtls_aes_init(&ctx);
+    mbedtls_aes_setkey_enc(&ctx, key, 128);
+
+    return mbedtls_aes_crypt_ecb( &ctx, MBEDTLS_AES_ENCRYPT, input, output_buffer);
 }
 
 int RSA_sign(const unsigned char *input, size_t input_len) {

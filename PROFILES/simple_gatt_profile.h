@@ -75,7 +75,7 @@ extern "C"
 // Simple Keys Profile Services bit fields
 #define SIMPLEPROFILE_SERVICE               0x00000001
 
-#define USER_CHALLANGE_CHAR_LENGTH        1
+#define USER_CHALLANGE_CHAR_LENGTH        16
 #define SERVER_RESPONE_CHAR_LENGTH        1
 
 /*********************************************************************

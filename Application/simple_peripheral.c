@@ -1128,7 +1128,8 @@ static void SimpleBLEPeripheral_processCharValueChangeEvt(uint8_t paramID)
         SimpleProfile_GetParameter(USER_CHALLANGE_CHAR_VALUE, new_value);
 
         // Sign the challange we got from the server
-        RSA_sign(new_value, USER_CHALLANGE_CHAR_LENGTH);
+        //RSA_sign(new_value, USER_CHALLANGE_CHAR_LENGTH);
+        AES_encrypt(new_value, USER_CHALLANGE_CHAR_LENGTH);
 
         break;
 
