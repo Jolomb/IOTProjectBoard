@@ -247,15 +247,27 @@ static uint8_t scanRspData[] =
   // complete name
   0x14,   // length of this data
   GAP_ADTYPE_LOCAL_NAME_COMPLETE,
-  'M',
-  'y',
-  'S',
-  'i',
-  'g',
-  'n',
-  'e',
-  'r',
-
+    'S',
+    'i',
+    'm',
+    'p',
+    'l',
+    'e',
+    'B',
+    'L',
+    'E',
+    'P',
+    'e',
+    'r',
+    'i',
+    'p',
+    'h',
+    'g',
+    'n',
+    'e',
+    'r',
+    'a',
+    'l',
   // connection interval range
   0x05,   // length of this data
   GAP_ADTYPE_SLAVE_CONN_INTERVAL_RANGE,
@@ -491,10 +503,8 @@ static void SimpleBLEPeripheral_init(void)
                          &desiredConnTimeout);
   }
 
-  System_printf("About to set GGS\n");
   // Set the GAP Characteristics
   GGS_SetParameter(GGS_DEVICE_NAME_ATT, GAP_DEVICE_NAME_LEN, attDeviceName);
-  System_printf("GGS set\n");
 
   // Set advertising interval
   {
