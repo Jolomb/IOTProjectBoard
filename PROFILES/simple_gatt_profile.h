@@ -76,7 +76,7 @@ extern "C"
 #define SIMPLEPROFILE_SERVICE               0x00000001
 
 #define USER_CHALLANGE_CHAR_LENGTH        16
-#define SERVER_RESPONSE_CHAR_LENGTH        1
+#define SERVER_RESPONSE_CHAR_LENGTH       128
 
 /*********************************************************************
  * TYPEDEFS

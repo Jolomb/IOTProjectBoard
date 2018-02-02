@@ -557,8 +557,9 @@ static void SimpleBLEPeripheral_init(void)
 #ifndef FEATURE_OAD_ONCHIP
   // Setup the SimpleProfile Characteristic Values
   {
-    uint8_t userChallangeCharValue[USER_CHALLANGE_CHAR_LENGTH] = {0};
-    uint8_t ResponseCharValue[SERVER_RESPONSE_CHAR_LENGTH] = {0};
+    uint8_t userChallangeCharValue[USER_CHALLANGE_CHAR_LENGTH] = "";
+    uint8_t ResponseCharValue[SERVER_RESPONSE_CHAR_LENGTH] = "";
+    memset(ResponseCharValue, 0x40, SERVER_RESPONSE_CHAR_LENGTH);
 
     SimpleProfile_SetParameter(USER_CHALLANGE_CHAR_VALUE, USER_CHALLANGE_CHAR_LENGTH,
                                userChallangeCharValue);
@@ -667,7 +668,6 @@ static void SimpleBLEPeripheral_taskFxn(UArg a0, UArg a1)
         sbpEvt_t *pMsg = (sbpEvt_t *)Util_dequeueMsg(appMsgQueue);
         if (pMsg)
         {
-          System_printf("12");
           // Process message.
           SimpleBLEPeripheral_processAppMsg(pMsg);
 
@@ -1119,21 +1119,43 @@ static void SimpleBLEPeripheral_processCharValueChangeEvt(uint8_t paramID)
 {
 #ifndef FEATURE_OAD_ONCHIP
 
-  uint8 new_value[SERVER_RESPONSE_CHAR_LENGTH];
+  uint8 *new_value = NULL;
+  unsigned char *signed_result = NULL;
   switch(paramID)
   {
     case USER_CHALLANGE_CHAR_VALUE:
-        System_printf("11");
+        new_value = calloc(1, USER_CHALLANGE_CHAR_LENGTH);
+        if (!new_value) {
+            System_printf("Failed to alloacte memory for the new user challange\n");
+            goto challange_cleanup;
+        }
         SimpleProfile_GetParameter(USER_CHALLANGE_CHAR_VALUE, new_value);
 
         // Sign the challange we got from the server
-        RSA_sign(new_value, USER_CHALLANGE_CHAR_LENGTH);
-        //AES_encrypt(new_value, USER_CHALLANGE_CHAR_LENGTH);
+        size_t output_len = MBEDTLS_MPI_MAX_SIZE;
+        signed_result = calloc(1, output_len);
+        if (!signed_result) {
+            System_printf("Failled to allocate memory for PKCS output buffer\n");
+        } else {
+            RSA_sign(new_value, USER_CHALLANGE_CHAR_LENGTH, signed_result, &output_len);
+            if (output_len > SERVER_RESPONSE_CHAR_LENGTH) {
+                System_printf("Signature is too long!\n");
+            } else{
+                SimpleProfile_SetParameter(SERVER_RESPONSE_CHAR_VALUE, SERVER_RESPONSE_CHAR_LENGTH, signed_result);
+            }
+
+        }
+challange_cleanup:
+        if (new_value)
+            free(new_value);
+        if (signed_result)
+            free(signed_result);
 
         break;
 
     case SERVER_RESPONSE_CHAR_VALUE:
-        SimpleProfile_GetParameter(SERVER_RESPONSE_CHAR_VALUE, new_value);
+        //TODO:
+        //SimpleProfile_GetParameter(SERVER_RESPONSE_CHAR_VALUE, new_value);
         break;
 
     default:

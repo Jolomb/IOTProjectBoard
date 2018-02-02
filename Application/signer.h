@@ -1,6 +1,8 @@
 #ifndef SIGNER_H__
 #define SIGNER_H__
 
+#include "mbedtls/bignum.h"
+
 /*
  * Initializes the RSA private key state for the entire program
  */
@@ -14,7 +16,7 @@ int is_RSA_read();
 /*
  * Perform a SHA256 signature for the input buffer
  */
-int RSA_sign(const unsigned char *input, size_t input_len);
+int RSA_sign(const unsigned char *input, size_t input_len, unsigned char *output_buf, size_t *output_len);
 
 /*
  * Perform the AES encryption on the input. Places the result in the output buffer.

@@ -89,7 +89,7 @@ int AES_encrypt(const unsigned char *input, size_t input_len, unsigned char *out
     return mbedtls_aes_crypt_ecb( &ctx, MBEDTLS_AES_ENCRYPT, input, output_buffer);
 }
 
-int RSA_sign(const unsigned char *input, size_t input_len) {
+int RSA_sign(const unsigned char *input, size_t input_len, unsigned char *output_buf, size_t *output_len) {
     // Will be used to check all sort of return values
     int ret;
 
@@ -98,11 +98,9 @@ int RSA_sign(const unsigned char *input, size_t input_len) {
     mbedtls_entropy_context *entropy = NULL;
     mbedtls_ctr_drbg_context *ctr_drbg = NULL;
 
-    // Buffers for the Hash and the signature result
-    unsigned char *sig_result_buf, *input_hash;
-    sig_result_buf = NULL;
+    // Buffers for the Hash
+    unsigned char *input_hash;
     input_hash = NULL;
-    size_t sig_result_len = 0;
 
     entropy = calloc(1, sizeof(mbedtls_entropy_context));
     ctr_drbg = calloc(1, sizeof(mbedtls_ctr_drbg_context));
@@ -145,19 +143,18 @@ int RSA_sign(const unsigned char *input, size_t input_len) {
     }
     System_printf("SHA256 done on input of length %d\n", input_len);
 
-    sig_result_buf = calloc(MBEDTLS_MPI_MAX_SIZE, sizeof(unsigned char));
-    if ( sig_result_buf == NULL ) {
-        System_printf("Failed to allocate signature result buffer\n");
+    if ( (!output_buf) || (!output_len) || (*output_len < MBEDTLS_MPI_MAX_SIZE)) {
+        System_printf("Output buffer argument incorrect\n");
+        ret = MBEDTLS_ERR_MPI_ALLOC_FAILED;
         goto error_cleanup;
     }
 
-    //TODO: Unserstand why we need entropy in here??
     ret = mbedtls_pk_sign( &privateKey,
                            MBEDTLS_MD_SHA256,
                            input_hash,
                            0,
-                           sig_result_buf,
-                           &sig_result_len,
+                           output_buf,
+                           output_len,
                            mbedtls_ctr_drbg_random,
                            ctr_drbg);
 
@@ -170,9 +167,6 @@ error_cleanup:
 cleanup:
     if (input_hash)
         free(input_hash);
-
-    if (sig_result_buf)
-        free(sig_result_buf);
 
     if (entropy) {
         mbedtls_entropy_free( entropy );

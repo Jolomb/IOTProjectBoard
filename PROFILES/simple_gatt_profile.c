@@ -122,7 +122,7 @@ static CONST gattAttrType_t simpleProfileService = { ATT_BT_UUID_SIZE, simplePro
 static uint8 UserChallangeProfileCharProps = GATT_PROP_READ | GATT_PROP_WRITE;
 
 // Characteristic 1 Value
-static uint8 UserChllangeProfileBuffer[USER_CHALLANGE_CHAR_LENGTH] = {0};
+static uint8 UserChllangeProfileBuffer[USER_CHALLANGE_CHAR_LENGTH] = "";
 
 // Simple Profile Characteristic 1 User Description
 static uint8 UserChallangeCharDesp[15] = "User Challange";
@@ -132,7 +132,7 @@ static uint8 UserChallangeCharDesp[15] = "User Challange";
 static uint8 ServerResponseProfileCharProps = GATT_PROP_READ;
 
 // Characteristic 2 Value
-static uint8 ServerResonseProfileBuffer[SERVER_RESPONSE_CHAR_LENGTH] = {0};
+static uint8 ServerResonseProfileBuffer[SERVER_RESPONSE_CHAR_LENGTH] = "";
 
 // Simple Profile Characteristic 2 User Description
 static uint8 ServerResponseProfileDesp[16] = "Server Response";
@@ -188,6 +188,7 @@ static gattAttribute_t simpleProfileAttrTbl[SERVAPP_NUM_ATTR_SUPPORTED] =
         { ATT_BT_UUID_SIZE, ServerResponseProfileCharUUID },
         GATT_PERMIT_READ, 
         0, 
+        ServerResonseProfileBuffer
       },
 
       // Characteristic 2 User Description
