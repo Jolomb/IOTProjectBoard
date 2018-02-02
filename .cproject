@@ -47,6 +47,7 @@
 									<listOptionValue builtIn="false" value="${COM_TI_SIMPLELINK_CC13X0_SDK_INCLUDE_PATH}"/>
 									<listOptionValue builtIn="false" value="${PROJECT_ROOT}"/>
 									<listOptionValue builtIn="false" value="${PROJECT_ROOT}/Application"/>
+									<listOptionValue builtIn="false" value="${PROJECT_ROOT}/PROFILES"/>
 									<listOptionValue builtIn="false" value="${PROJECT_ROOT}/include"/>
 									<listOptionValue builtIn="false" value="${CC13XXWARE}"/>
 									<listOptionValue builtIn="false" value="${PROJECT_BUILD_BASE}/src/app"/>

@@ -132,7 +132,7 @@ static uint8 UserChallangeCharDesp[15] = "User Challange";
 static uint8 ServerResponseProfileCharProps = GATT_PROP_READ;
 
 // Characteristic 2 Value
-static uint8 ServerResonseProfileBuffer[SERVER_RESPONE_CHAR_LENGTH] = {0};
+static uint8 ServerResonseProfileBuffer[SERVER_RESPONSE_CHAR_LENGTH] = {0};
 
 // Simple Profile Characteristic 2 User Description
 static uint8 ServerResponseProfileDesp[16] = "Server Response";
@@ -309,7 +309,7 @@ bStatus_t SimpleProfile_SetParameter( uint8 param, uint8 len, void *value )
   bStatus_t ret = SUCCESS;
   switch ( param )
   {
-    case USER_CHALLANGE_CHAR:
+    case USER_CHALLANGE_CHAR_VALUE:
       if ( len == USER_CHALLANGE_CHAR_LENGTH )
       {
          VOID memcpy( UserChllangeProfileBuffer, value, USER_CHALLANGE_CHAR_LENGTH );
@@ -320,10 +320,10 @@ bStatus_t SimpleProfile_SetParameter( uint8 param, uint8 len, void *value )
       }
       break;
 
-    case SERVER_RESPONSE_CHAR:
-      if ( len == SERVER_RESPONE_CHAR_LENGTH )
+    case SERVER_RESPONSE_CHAR_VALUE:
+      if ( len == SERVER_RESPONSE_CHAR_LENGTH )
       {
-         VOID memcpy( ServerResonseProfileBuffer, value, SERVER_RESPONE_CHAR_LENGTH );
+         VOID memcpy( ServerResonseProfileBuffer, value, SERVER_RESPONSE_CHAR_LENGTH );
       }
       else
       {
@@ -357,12 +357,12 @@ bStatus_t SimpleProfile_GetParameter( uint8 param, void *value )
   bStatus_t ret = SUCCESS;
   switch ( param )
   {
-    case USER_CHALLANGE_CHAR:
+    case USER_CHALLANGE_CHAR_VALUE:
       VOID memcpy( value, UserChllangeProfileBuffer, USER_CHALLANGE_CHAR_LENGTH );
       break;
 
-    case SERVER_RESPONSE_CHAR:
-      VOID memcpy( value, ServerResonseProfileBuffer, SERVER_RESPONE_CHAR_LENGTH );
+    case SERVER_RESPONSE_CHAR_VALUE:
+      VOID memcpy( value, ServerResonseProfileBuffer, SERVER_RESPONSE_CHAR_LENGTH );
       break;      
   }
   
@@ -418,8 +418,8 @@ static bStatus_t simpleProfile_ReadAttrCB(uint16_t connHandle,
         break;
 
       case SERVER_RESPONSE_UUID:
-          *pLen = SERVER_RESPONE_CHAR_LENGTH;
-          VOID memcpy( pValue, pAttr->pValue, SERVER_RESPONE_CHAR_LENGTH );
+          *pLen = SERVER_RESPONSE_CHAR_LENGTH;
+          VOID memcpy( pValue, pAttr->pValue, SERVER_RESPONSE_CHAR_LENGTH );
           break;
 
       default:
@@ -489,7 +489,7 @@ static bStatus_t simpleProfile_WriteAttrCB(uint16_t connHandle,
           uint8 *pCurValue = (uint8 *)pAttr->pValue;        
           VOID memcpy( pCurValue, pValue, len );
 
-          notifyApp = USER_CHALLANGE_CHAR;
+          notifyApp = USER_CHALLANGE_CHAR_VALUE;
         }
              
         break;

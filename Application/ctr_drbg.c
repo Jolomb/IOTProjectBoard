@@ -35,6 +35,7 @@
 #include "mbedtls/ctr_drbg.h"
 
 #include <string.h>
+#include <stdlib.h>
 
 #if defined(MBEDTLS_FS_IO)
 #include <stdio.h>
@@ -287,13 +288,17 @@ void mbedtls_ctr_drbg_update( mbedtls_ctr_drbg_context *ctx,
 int mbedtls_ctr_drbg_reseed( mbedtls_ctr_drbg_context *ctx,
                      const unsigned char *additional, size_t len )
 {
-    unsigned char seed[MBEDTLS_CTR_DRBG_MAX_SEED_INPUT];
+    unsigned char *seed = NULL;
     size_t seedlen = 0;
 
     if( ctx->entropy_len > MBEDTLS_CTR_DRBG_MAX_SEED_INPUT ||
         len > MBEDTLS_CTR_DRBG_MAX_SEED_INPUT - ctx->entropy_len )
         return( MBEDTLS_ERR_CTR_DRBG_INPUT_TOO_BIG );
 
+    seed = calloc(1, MBEDTLS_CTR_DRBG_MAX_SEED_INPUT);
+    if (seed == NULL) {
+        return ( MBEDTLS_ERR_CTR_DRBG_REQUEST_TOO_BIG );
+    }
     memset( seed, 0, MBEDTLS_CTR_DRBG_MAX_SEED_INPUT );
 
     /*
@@ -302,6 +307,7 @@ int mbedtls_ctr_drbg_reseed( mbedtls_ctr_drbg_context *ctx,
     if( 0 != ctx->f_entropy( ctx->p_entropy, seed,
                              ctx->entropy_len ) )
     {
+        free(seed);
         return( MBEDTLS_ERR_CTR_DRBG_ENTROPY_SOURCE_FAILED );
     }
 
@@ -327,6 +333,7 @@ int mbedtls_ctr_drbg_reseed( mbedtls_ctr_drbg_context *ctx,
     ctr_drbg_update_internal( ctx, seed );
     ctx->reseed_counter = 1;
 
+    free(seed);
     return( 0 );
 }
 
@@ -336,25 +343,37 @@ int mbedtls_ctr_drbg_random_with_add( void *p_rng,
 {
     int ret = 0;
     mbedtls_ctr_drbg_context *ctx = (mbedtls_ctr_drbg_context *) p_rng;
-    unsigned char add_input[MBEDTLS_CTR_DRBG_SEEDLEN];
+    unsigned char *add_input = NULL;
     unsigned char *p = output;
-    unsigned char tmp[MBEDTLS_CTR_DRBG_BLOCKSIZE];
+    unsigned char *tmp = NULL;
     int i;
     size_t use_len;
 
-    if( output_len > MBEDTLS_CTR_DRBG_MAX_REQUEST )
-        return( MBEDTLS_ERR_CTR_DRBG_REQUEST_TOO_BIG );
+    add_input = calloc(1, MBEDTLS_CTR_DRBG_SEEDLEN);
+    tmp = calloc(1, MBEDTLS_CTR_DRBG_BLOCKSIZE);
+    if ( (!add_input) || (!tmp) ) {
+        ret = MBEDTLS_ERR_CTR_DRBG_REQUEST_TOO_BIG;
+        goto random_with_add_cleanup;
+    }
 
-    if( add_len > MBEDTLS_CTR_DRBG_MAX_INPUT )
-        return( MBEDTLS_ERR_CTR_DRBG_INPUT_TOO_BIG );
+    if( output_len > MBEDTLS_CTR_DRBG_MAX_REQUEST ) {
+        ret = MBEDTLS_ERR_CTR_DRBG_REQUEST_TOO_BIG;
+        goto random_with_add_cleanup;
+    }
+
+    if( add_len > MBEDTLS_CTR_DRBG_MAX_INPUT ) {
+        ret = MBEDTLS_ERR_CTR_DRBG_INPUT_TOO_BIG;
+        goto random_with_add_cleanup;
+    }
 
     memset( add_input, 0, MBEDTLS_CTR_DRBG_SEEDLEN );
 
     if( ctx->reseed_counter > ctx->reseed_interval ||
         ctx->prediction_resistance )
     {
-        if( ( ret = mbedtls_ctr_drbg_reseed( ctx, additional, add_len ) ) != 0 )
-            return( ret );
+        if( ( ret = mbedtls_ctr_drbg_reseed( ctx, additional, add_len ) ) != 0 ) {
+            goto random_with_add_cleanup;
+        }
 
         add_len = 0;
     }
@@ -392,8 +411,14 @@ int mbedtls_ctr_drbg_random_with_add( void *p_rng,
     ctr_drbg_update_internal( ctx, add_input );
 
     ctx->reseed_counter++;
+    ret = 0;
 
-    return( 0 );
+random_with_add_cleanup:
+    if (tmp)
+        free(tmp);
+    if(add_input)
+        free(add_input);
+    return( ret );
 }
 
 int mbedtls_ctr_drbg_random( void *p_rng, unsigned char *output, size_t output_len )

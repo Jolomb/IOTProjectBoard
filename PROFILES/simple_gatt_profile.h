@@ -62,8 +62,8 @@ extern "C"
  */
 
 // Profile Parameters
-#define USER_CHALLANGE_CHAR                   0  // RW uint8 - Profile Characteristic 1 value
-#define SERVER_RESPONSE_CHAR                  1  // RW uint8 - Profile Characteristic 2 value
+#define USER_CHALLANGE_CHAR_VALUE                   0  // RW uint8 - Profile Characteristic 1 value
+#define SERVER_RESPONSE_CHAR_VALUE                  1  // RW uint8 - Profile Characteristic 2 value
   
 // Simple Profile Service UUID
 #define SIMPLEPROFILE_SERV_UUID               0xFFF0
@@ -76,7 +76,7 @@ extern "C"
 #define SIMPLEPROFILE_SERVICE               0x00000001
 
 #define USER_CHALLANGE_CHAR_LENGTH        16
-#define SERVER_RESPONE_CHAR_LENGTH        1
+#define SERVER_RESPONSE_CHAR_LENGTH        1
 
 /*********************************************************************
  * TYPEDEFS

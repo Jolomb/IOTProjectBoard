@@ -182,7 +182,7 @@
 
 
 #ifndef SBP_TASK_STACK_SIZE
-#define SBP_TASK_STACK_SIZE                   1024
+#define SBP_TASK_STACK_SIZE                   1036
 #endif
 
 // Internal Events for RTOS application
@@ -247,25 +247,14 @@ static uint8_t scanRspData[] =
   // complete name
   0x14,   // length of this data
   GAP_ADTYPE_LOCAL_NAME_COMPLETE,
+  'M',
+  'y',
   'S',
   'i',
-  'm',
-  'p',
-  'l',
-  'e',
-  'B',
-  'L',
-  'E',
-  'P',
+  'g',
+  'n',
   'e',
   'r',
-  'i',
-  'p',
-  'h',
-  'e',
-  'r',
-  'a',
-  'l',
 
   // connection interval range
   0x05,   // length of this data
@@ -311,7 +300,7 @@ static uint8_t advertData[] =
 };
 
 // GAP GATT Attributes
-static uint8_t attDeviceName[GAP_DEVICE_NAME_LEN] = "Simple BLE Peripheral";
+static uint8_t attDeviceName[GAP_DEVICE_NAME_LEN] = "MySigner";
 
 // Globals used for ATT Response retransmission
 static gattMsgEvent_t *pAttRsp = NULL;
@@ -668,7 +657,7 @@ static void SimpleBLEPeripheral_taskFxn(UArg a0, UArg a1)
         sbpEvt_t *pMsg = (sbpEvt_t *)Util_dequeueMsg(appMsgQueue);
         if (pMsg)
         {
-          System_printf("Task loop dealing with a new ICALL msg from queue\n");
+          System_printf("12");
           // Process message.
           SimpleBLEPeripheral_processAppMsg(pMsg);
 
@@ -1124,12 +1113,12 @@ static void SimpleBLEPeripheral_processCharValueChangeEvt(uint8_t paramID)
   switch(paramID)
   {
     case USER_CHALLANGE_CHAR_VALUE:
-        System_printf("Dealing with value change of User Challange Char\n");
+        System_printf("11");
         SimpleProfile_GetParameter(USER_CHALLANGE_CHAR_VALUE, new_value);
 
         // Sign the challange we got from the server
-        //RSA_sign(new_value, USER_CHALLANGE_CHAR_LENGTH);
-        AES_encrypt(new_value, USER_CHALLANGE_CHAR_LENGTH);
+        RSA_sign(new_value, USER_CHALLANGE_CHAR_LENGTH);
+        //AES_encrypt(new_value, USER_CHALLANGE_CHAR_LENGTH);
 
         break;
 

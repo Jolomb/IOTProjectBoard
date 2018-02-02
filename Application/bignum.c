@@ -47,6 +47,7 @@
 #include "mbedtls/bn_mul.h"
 
 #include <string.h>
+#include <xdc/runtime/system.h>
 
 #if defined(MBEDTLS_PLATFORM_C)
 #include "mbedtls/platform.h"
@@ -198,7 +199,8 @@ int mbedtls_mpi_copy( mbedtls_mpi *X, const mbedtls_mpi *Y )
 
     X->s = Y->s;
 
-    MBEDTLS_MPI_CHK( mbedtls_mpi_grow( X, i ) );
+    ret = mbedtls_mpi_grow( X, i );
+    MBEDTLS_MPI_CHK( ret );
 
     memset( X->p, 0, X->n * ciL );
     memcpy( X->p, Y->p, i * ciL );
@@ -1611,14 +1613,25 @@ int mbedtls_mpi_exp_mod( mbedtls_mpi *X, const mbedtls_mpi *A, const mbedtls_mpi
     size_t i, j, nblimbs;
     size_t bufsize, nbits;
     mbedtls_mpi_uint ei, mm, state;
-    mbedtls_mpi RR, T, W[ 2 << MBEDTLS_MPI_WINDOW_SIZE ], Apos;
+    mbedtls_mpi RR, T, Apos;
+
+    mbedtls_mpi *W;
+    W = calloc(sizeof(mbedtls_mpi),  (2 << MBEDTLS_MPI_WINDOW_SIZE)  );
+    if (!W) {
+        return MBEDTLS_ERR_MPI_ALLOC_FAILED;
+    }
+
     int neg;
 
-    if( mbedtls_mpi_cmp_int( N, 0 ) < 0 || ( N->p[0] & 1 ) == 0 )
+    if( mbedtls_mpi_cmp_int( N, 0 ) < 0 || ( N->p[0] & 1 ) == 0 ){
+        free(W);
         return( MBEDTLS_ERR_MPI_BAD_INPUT_DATA );
+    }
 
-    if( mbedtls_mpi_cmp_int( E, 0 ) < 0 )
+    if( mbedtls_mpi_cmp_int( E, 0 ) < 0 ) {
+        free(W);
         return( MBEDTLS_ERR_MPI_BAD_INPUT_DATA );
+    }
 
     /*
      * Init temps and window size
@@ -1626,7 +1639,7 @@ int mbedtls_mpi_exp_mod( mbedtls_mpi *X, const mbedtls_mpi *A, const mbedtls_mpi
     mpi_montg_init( &mm, N );
     mbedtls_mpi_init( &RR ); mbedtls_mpi_init( &T );
     mbedtls_mpi_init( &Apos );
-    memset( W, 0, sizeof( W ) );
+    memset( W, 0, sizeof( 2 << MBEDTLS_MPI_WINDOW_SIZE ) );
 
     i = mbedtls_mpi_bitlen( E );
 
@@ -1802,6 +1815,8 @@ cleanup:
         mbedtls_mpi_free( &W[i] );
 
     mbedtls_mpi_free( &W[1] ); mbedtls_mpi_free( &T ); mbedtls_mpi_free( &Apos );
+    if (W)
+        free(W);
 
     if( _RR == NULL || _RR->p == NULL )
         mbedtls_mpi_free( &RR );
@@ -1873,15 +1888,23 @@ int mbedtls_mpi_fill_random( mbedtls_mpi *X, size_t size,
                      void *p_rng )
 {
     int ret;
-    unsigned char buf[MBEDTLS_MPI_MAX_SIZE];
+    unsigned char *buf;
+    buf = calloc(1, MBEDTLS_MPI_MAX_SIZE);
+    if ( !buf ) {
+        System_printf("Failed to allocate buffer for random fill\n");
+        return MBEDTLS_ERR_MPI_ALLOC_FAILED;
+    }
 
-    if( size > MBEDTLS_MPI_MAX_SIZE )
+    if( size > MBEDTLS_MPI_MAX_SIZE ) {
+        free(buf);
         return( MBEDTLS_ERR_MPI_BAD_INPUT_DATA );
+    }
 
     MBEDTLS_MPI_CHK( f_rng( p_rng, buf, size ) );
     MBEDTLS_MPI_CHK( mbedtls_mpi_read_binary( X, buf, size ) );
 
 cleanup:
+    free(buf);
     return( ret );
 }
 

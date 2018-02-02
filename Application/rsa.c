@@ -398,7 +398,7 @@ int mbedtls_rsa_private( mbedtls_rsa_context *ctx,
 {
     int ret;
     size_t olen;
-    mbedtls_mpi T, T1, T2;
+    mbedtls_mpi *T;
     mbedtls_mpi P1, Q1, R;
 #if defined(MBEDTLS_RSA_NO_CRT)
     mbedtls_mpi D_blind;
@@ -409,11 +409,19 @@ int mbedtls_rsa_private( mbedtls_rsa_context *ctx,
     mbedtls_mpi *DQ = &ctx->DQ;
 #endif
 
+    //TODO: REMOVE THIS. IT MEANS WE DON'T BLIND!
+    f_rng = NULL;
+
     /* Make sure we have private key info, prevent possible misuse */
     if( ctx->P.p == NULL || ctx->Q.p == NULL || ctx->D.p == NULL )
         return( MBEDTLS_ERR_RSA_BAD_INPUT_DATA );
 
-    mbedtls_mpi_init( &T ); mbedtls_mpi_init( &T1 ); mbedtls_mpi_init( &T2 );
+    // Allocate room for number operations. (Use heap to save stack space)
+    T = calloc(3, sizeof(mbedtls_mpi));
+    if (!T) {
+        return MBEDTLS_ERR_RSA_OUTPUT_TOO_LARGE;
+    }
+    mbedtls_mpi_init( &T[0] ); mbedtls_mpi_init( &T[1] ); mbedtls_mpi_init( &T[2] );
     mbedtls_mpi_init( &P1 ); mbedtls_mpi_init( &Q1 ); mbedtls_mpi_init( &R );
 
 
@@ -429,12 +437,14 @@ int mbedtls_rsa_private( mbedtls_rsa_context *ctx,
 
 
 #if defined(MBEDTLS_THREADING_C)
-    if( ( ret = mbedtls_mutex_lock( &ctx->mutex ) ) != 0 )
+    if( ( ret = mbedtls_mutex_lock( &ctx->mutex ) ) != 0 ) {
+        free(T);
         return( ret );
+    }
 #endif
 
-    MBEDTLS_MPI_CHK( mbedtls_mpi_read_binary( &T, input, ctx->len ) );
-    if( mbedtls_mpi_cmp_mpi( &T, &ctx->N ) >= 0 )
+    MBEDTLS_MPI_CHK( mbedtls_mpi_read_binary( &T[0], input, ctx->len ) );
+    if( mbedtls_mpi_cmp_mpi( &T[0], &ctx->N ) >= 0 )
     {
         ret = MBEDTLS_ERR_MPI_BAD_INPUT_DATA;
         goto cleanup;
@@ -447,8 +457,8 @@ int mbedtls_rsa_private( mbedtls_rsa_context *ctx,
          * T = T * Vi mod N
          */
         MBEDTLS_MPI_CHK( rsa_prepare_blinding( ctx, f_rng, p_rng ) );
-        MBEDTLS_MPI_CHK( mbedtls_mpi_mul_mpi( &T, &T, &ctx->Vi ) );
-        MBEDTLS_MPI_CHK( mbedtls_mpi_mod_mpi( &T, &T, &ctx->N ) );
+        MBEDTLS_MPI_CHK( mbedtls_mpi_mul_mpi( &T[0], &T[0], &ctx->Vi ) );
+        MBEDTLS_MPI_CHK( mbedtls_mpi_mod_mpi( &T[0], &T[0], &ctx->N ) );
 
         /*
          * Exponent blinding
@@ -501,21 +511,21 @@ int mbedtls_rsa_private( mbedtls_rsa_context *ctx,
      * T1 = input ^ dP mod P
      * T2 = input ^ dQ mod Q
      */
-    MBEDTLS_MPI_CHK( mbedtls_mpi_exp_mod( &T1, &T, DP, &ctx->P, &ctx->RP ) );
-    MBEDTLS_MPI_CHK( mbedtls_mpi_exp_mod( &T2, &T, DQ, &ctx->Q, &ctx->RQ ) );
+    MBEDTLS_MPI_CHK( mbedtls_mpi_exp_mod( &T[1], &T[0], DP, &ctx->P, &ctx->RP ) );
+    MBEDTLS_MPI_CHK( mbedtls_mpi_exp_mod( &T[2], &T[0], DQ, &ctx->Q, &ctx->RQ ) );
 
     /*
      * T = (T1 - T2) * (Q^-1 mod P) mod P
      */
-    MBEDTLS_MPI_CHK( mbedtls_mpi_sub_mpi( &T, &T1, &T2 ) );
-    MBEDTLS_MPI_CHK( mbedtls_mpi_mul_mpi( &T1, &T, &ctx->QP ) );
-    MBEDTLS_MPI_CHK( mbedtls_mpi_mod_mpi( &T, &T1, &ctx->P ) );
+    MBEDTLS_MPI_CHK( mbedtls_mpi_sub_mpi( &T[0], &T[1], &T[2] ) );
+    MBEDTLS_MPI_CHK( mbedtls_mpi_mul_mpi( &T[1], &T[0], &ctx->QP ) );
+    MBEDTLS_MPI_CHK( mbedtls_mpi_mod_mpi( &T[0], &T[1], &ctx->P ) );
 
     /*
      * T = T2 + T * Q
      */
-    MBEDTLS_MPI_CHK( mbedtls_mpi_mul_mpi( &T1, &T, &ctx->Q ) );
-    MBEDTLS_MPI_CHK( mbedtls_mpi_add_mpi( &T, &T2, &T1 ) );
+    MBEDTLS_MPI_CHK( mbedtls_mpi_mul_mpi( &T[1], &T[0], &ctx->Q ) );
+    MBEDTLS_MPI_CHK( mbedtls_mpi_add_mpi( &T[0], &T[2], &T[1] ) );
 #endif /* MBEDTLS_RSA_NO_CRT */
 
     if( f_rng != NULL )
@@ -524,12 +534,12 @@ int mbedtls_rsa_private( mbedtls_rsa_context *ctx,
          * Unblind
          * T = T * Vf mod N
          */
-        MBEDTLS_MPI_CHK( mbedtls_mpi_mul_mpi( &T, &T, &ctx->Vf ) );
-        MBEDTLS_MPI_CHK( mbedtls_mpi_mod_mpi( &T, &T, &ctx->N ) );
+        MBEDTLS_MPI_CHK( mbedtls_mpi_mul_mpi( &T[0], &T[0], &ctx->Vf ) );
+        MBEDTLS_MPI_CHK( mbedtls_mpi_mod_mpi( &T[0], &T[0], &ctx->N ) );
     }
 
     olen = ctx->len;
-    MBEDTLS_MPI_CHK( mbedtls_mpi_write_binary( &T, output, olen ) );
+    MBEDTLS_MPI_CHK( mbedtls_mpi_write_binary( &T[0], output, olen ) );
 
 cleanup:
 #if defined(MBEDTLS_THREADING_C)
@@ -537,8 +547,11 @@ cleanup:
         return( MBEDTLS_ERR_THREADING_MUTEX_ERROR );
 #endif
 
-    mbedtls_mpi_free( &T ); mbedtls_mpi_free( &T1 ); mbedtls_mpi_free( &T2 );
+    mbedtls_mpi_free( &T[0] ); mbedtls_mpi_free( &T[1] ); mbedtls_mpi_free( &T[2] );
     mbedtls_mpi_free( &P1 ); mbedtls_mpi_free( &Q1 ); mbedtls_mpi_free( &R );
+
+    if (T)
+        free(T);
 
     if( f_rng != NULL )
     {

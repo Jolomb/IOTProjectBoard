@@ -17,9 +17,11 @@ int is_RSA_read();
 int RSA_sign(const unsigned char *input, size_t input_len);
 
 /*
- * Perform the AES encryption on the input
+ * Perform the AES encryption on the input. Places the result in the output buffer.
+ *  Output buffer must be of length exactly 16.
+ *  This will perform ECB operation of AES and use the hard coded key
  */
-int AES_encrypt(const unsigned char *input, size_t input_len);
+int AES_encrypt(const unsigned char *input, size_t input_len, unsigned char *output_buffer, size_t output_len);
 
 /*
  * Initializes the True Random Generator hardware the board has

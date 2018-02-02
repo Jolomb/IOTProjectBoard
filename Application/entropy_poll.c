@@ -242,6 +242,19 @@ int mbedtls_havege_poll( void *data,
 }
 #endif /* MBEDTLS_HAVEGE_C */
 
+#if defined(MBEDTLS_ENTROPY_HARDWARE_ALT)
+
+int mbedtls_hardware_poll( void *data,
+                           unsigned char *output, size_t len, size_t *olen ) {
+
+    uint32_t r = 1;
+    memcpy( output, &r, sizeof(uint32_t));
+    *olen = sizeof(uint32_t);
+    return 0;
+}
+
+#endif /* MBEDTLS_ENTROPY_HARDWARE_ALT */
+
 #if defined(MBEDTLS_ENTROPY_NV_SEED)
 int mbedtls_nv_seed_poll( void *data,
                           unsigned char *output, size_t len, size_t *olen )

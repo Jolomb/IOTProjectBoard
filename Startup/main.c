@@ -161,7 +161,7 @@ extern Display_Handle dispHandle;
  * @return      None.
  */
 int main()
- {
+  {
     System_printf("Main started\n");
 
 #if defined( USE_FPGA )

@@ -94,20 +94,30 @@ int RSA_sign(const unsigned char *input, size_t input_len) {
     int ret;
 
     // We use a random counter mode to sign the message
-    mbedtls_entropy_context entropy;
-    mbedtls_ctr_drbg_context ctr_drbg;
-    mbedtls_entropy_init( &entropy );
-    mbedtls_ctr_drbg_init( &ctr_drbg );
+    // Allocate on the heap to save stack memory
+    mbedtls_entropy_context *entropy = NULL;
+    mbedtls_ctr_drbg_context *ctr_drbg = NULL;
 
+    // Buffers for the Hash and the signature result
     unsigned char *sig_result_buf, *input_hash;
     sig_result_buf = NULL;
     input_hash = NULL;
     size_t sig_result_len = 0;
 
+    entropy = calloc(1, sizeof(mbedtls_entropy_context));
+    ctr_drbg = calloc(1, sizeof(mbedtls_ctr_drbg_context));
+    if ( (!entropy) || (!ctr_drbg) ) {
+        System_printf("Failed to allocate heap memory for Entropy");
+        goto error_cleanup;
+    }
+    mbedtls_entropy_init( entropy );
+    mbedtls_ctr_drbg_init( ctr_drbg );
+
+
     // The counter works with AES module
-    ret = mbedtls_ctr_drbg_seed( &ctr_drbg,
+    ret = mbedtls_ctr_drbg_seed( ctr_drbg,
                                  mbedtls_entropy_func,
-                                 &entropy,
+                                 entropy,
                                  NULL, 0);
     if (ret != 0) {
            System_printf("Failed to seed the entropy source\n");
@@ -133,7 +143,7 @@ int RSA_sign(const unsigned char *input, size_t input_len) {
         System_printf("SHA256 failed on input\n");
         goto error_cleanup;
     }
-    System_printf("SHA256 done on input of length %d\n", input, input_len);
+    System_printf("SHA256 done on input of length %d\n", input_len);
 
     sig_result_buf = calloc(MBEDTLS_MPI_MAX_SIZE, sizeof(unsigned char));
     if ( sig_result_buf == NULL ) {
@@ -149,7 +159,7 @@ int RSA_sign(const unsigned char *input, size_t input_len) {
                            sig_result_buf,
                            &sig_result_len,
                            mbedtls_ctr_drbg_random,
-                           &ctr_drbg);
+                           ctr_drbg);
 
     System_printf("Finished RSA_sign\n");
     ret = 0;
@@ -164,9 +174,15 @@ cleanup:
     if (sig_result_buf)
         free(sig_result_buf);
 
-    // Release the counters we used for the signature
-    mbedtls_ctr_drbg_free( &ctr_drbg );
-    mbedtls_entropy_free( &entropy );
+    if (entropy) {
+        mbedtls_entropy_free( entropy );
+        free( entropy );
+    }
+    if (ctr_drbg) {
+        mbedtls_ctr_drbg_free( ctr_drbg );
+        free(ctr_drbg);
+    }
+
     return ret;
 }
 

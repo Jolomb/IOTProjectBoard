@@ -57,9 +57,15 @@
 
 #if defined(MBEDTLS_AES_ALT)
 
+bool is_Crypt_initialized = false;
+
 void mbedtls_aes_init( mbedtls_aes_context *ctx )
 {
-    CryptoCC26XX_init();
+    System_printf("AES init was called\n");
+    if (!is_Crypt_initialized) {
+        CryptoCC26XX_init();
+        is_Crypt_initialized = true;
+    }
     ctx->handle = CryptoCC26XX_open(Board_CRYPTO0, false, NULL);
     if (!ctx->handle) {
       System_abort("Failed to open the Crypto Module\n");
@@ -73,6 +79,7 @@ void mbedtls_aes_init( mbedtls_aes_context *ctx )
 
 void mbedtls_aes_free( mbedtls_aes_context *ctx )
 {
+    System_printf("AES free was called\n");
     if( ctx == NULL )
         return;
 
@@ -99,10 +106,19 @@ int mbedtls_aes_setkey_enc( mbedtls_aes_context *ctx, const unsigned char *key,
         return MBEDTLS_ERR_AES_INVALID_KEY_LENGTH;
     }
 
+    if (ctx->keyLocation != CRYPTOCC26XX_STATUS_ERROR) {
+        // This means a key has allready been alocated for this contenxt
+        if (CryptoCC26XX_releaseKey(ctx->handle, (int32_t *)&ctx->keyLocation) != CRYPTOCC26XX_STATUS_SUCCESS) {
+            System_printf("Failed to free the extra AES key\n");
+        }
+        ctx->keyLocation = CRYPTOCC26XX_STATUS_ERROR;
+    }
+
     // Allocate the required key in the AES memory
     ctx->keyLocation = CryptoCC26XX_allocateKey(ctx->handle,
                                                 CRYPTOCC26XX_KEY_ANY, // Allocate the key at any free location in the table
                                                 (const uint32_t *) key);
+    System_printf("AES Set key was called: %d\n", ctx->keyLocation);
     if (ctx->keyLocation == CRYPTOCC26XX_STATUS_ERROR) {
         System_printf("Failed to allocate the memory for the AES key\n");
         return MBEDTLS_ERR_AES_INVALID_KEY_LENGTH;
@@ -132,7 +148,7 @@ int mbedtls_internal_aes_encrypt( mbedtls_aes_context *ctx,
                                   unsigned char output[16],
                                   bool is_decrypt)
 {
-
+    System_printf("Internal AES encrypt called. Decrypt: %d\n", is_decrypt);
     // Initialize transaction
     CryptoCC26XX_AESECB_Transaction trans;
     if (!is_decrypt) {
@@ -149,6 +165,7 @@ int mbedtls_internal_aes_encrypt( mbedtls_aes_context *ctx,
 
     // Encrypt the plaintext with AES ECB
     int32_t status;
+    System_printf("Calling crypt transact with: %d, %d\n", ctx->handle, &trans);
     status = CryptoCC26XX_transact(ctx->handle, (CryptoCC26XX_Transaction *) &trans);
     if(status != CRYPTOCC26XX_STATUS_SUCCESS){
         System_printf("Failed to perform the AES encryption\n");
@@ -163,6 +180,7 @@ void mbedtls_aes_encrypt( mbedtls_aes_context *ctx,
                           const unsigned char input[16],
                           unsigned char output[16] )
 {
+    System_printf("AES encrypt was called\n");
     mbedtls_internal_aes_encrypt( ctx, input, output, false );
 }
 
@@ -174,6 +192,7 @@ void mbedtls_aes_decrypt( mbedtls_aes_context *ctx,
                           const unsigned char input[16],
                           unsigned char output[16] )
 {
+    System_printf("AES decrypt was called\n");
     mbedtls_internal_aes_encrypt( ctx, input, output, true );
 }
 
