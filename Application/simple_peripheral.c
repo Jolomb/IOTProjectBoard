@@ -63,6 +63,7 @@
 #include "gattservapp.h"
 #include "devinfoservice.h"
 #include "simple_gatt_profile.h"
+#include "led_control.h"
 
 #if defined(FEATURE_OAD) || defined(IMAGE_INVALIDATE)
 #include "oad_target.h"
@@ -1140,8 +1141,12 @@ static void SimpleBLEPeripheral_processCharValueChangeEvt(uint8_t paramID)
             RSA_sign(new_value, USER_CHALLANGE_CHAR_LENGTH, signed_result, &output_len);
             if (output_len > SERVER_RESPONSE_CHAR_LENGTH) {
                 System_printf("Signature is too long!\n");
+                set_red_led(true);
+                set_green_led(false);
             } else{
                 SimpleProfile_SetParameter(SERVER_RESPONSE_CHAR_VALUE, SERVER_RESPONSE_CHAR_LENGTH, signed_result);
+                set_green_led(true);
+                set_red_led(false);
             }
 
         }

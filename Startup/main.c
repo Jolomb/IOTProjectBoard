@@ -73,7 +73,7 @@
 #include "ble_user_config.h"
 
 #include "signer.h"
-
+#include "led_control.h"
 
 // BLE user defined configuration
 bleUserCfg_t user0Cfg = BLE_USER_CFG;
@@ -206,6 +206,8 @@ int main()
 
   //Initialize the RSA part of the application
   RSA_init();
+
+  init_LED_pins();
 
   /* Initialize ICall module */
   ICall_init();
