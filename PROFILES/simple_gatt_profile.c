@@ -74,7 +74,7 @@
  * CONSTANTS
  */
 
-#define SERVAPP_NUM_ATTR_SUPPORTED        11
+#define SERVAPP_NUM_ATTR_SUPPORTED        12
 
 /*********************************************************************
  * TYPEDEFS
@@ -146,13 +146,15 @@ static uint8 ServerResonseProfileBuffer[SERVER_RESPONSE_CHAR_LENGTH] = "";
 static uint8 ServerResponseProfileDesp[16] = "Server Response";
 
 // Simple Profile Characteristic 2 Properties
-static uint8 ResponseReadyProfileCharProps = GATT_PROP_READ | GATT_PROP_WRITE;
+static uint8 ResponseReadyProfileCharProps = GATT_PROP_READ | GATT_PROP_WRITE | GATT_PROP_NOTIFY;
 
 // Characteristic 2 Value
 static uint8 ResponseReadyProfileBuffer[RESPONSE_READY_CHAR_LENGTH] = "";
 
 // Simple Profile Characteristic 2 User Description
 static uint8 ResponseReadyProfileDesp[16] = "Response Status";
+
+static gattCharCfg_t *ResponseReadyCharConfig;
 
 /*********************************************************************
  * Profile Attributes - Table
@@ -232,6 +234,14 @@ static gattAttribute_t simpleProfileAttrTbl[SERVAPP_NUM_ATTR_SUPPORTED] =
           ResponseReadyProfileBuffer
         },
 
+        // Characteristic 3 configuration
+        {
+          { ATT_BT_UUID_SIZE, clientCharCfgUUID },
+          GATT_PERMIT_READ | GATT_PERMIT_WRITE,
+          0,
+          (uint8 *)&ResponseReadyCharConfig
+        },
+
         // Characteristic 3 User Description
         {
           { ATT_BT_UUID_SIZE, charUserDescUUID },
@@ -292,6 +302,17 @@ bStatus_t SimpleProfile_AddService( uint32 services )
 {
   uint8 status;
   
+  // Allocate Client Characteristic Configuration table
+    ResponseReadyCharConfig = (gattCharCfg_t *)ICall_malloc( sizeof(gattCharCfg_t) *
+                                                              linkDBNumConns );
+    if ( ResponseReadyCharConfig == NULL )
+    {
+      return ( bleMemAllocError );
+    }
+
+    // Initialize Client Characteristic Configuration attributes
+    GATTServApp_InitCharCfg( INVALID_CONNHANDLE, ResponseReadyCharConfig );
+
   if ( services & SIMPLEPROFILE_SERVICE )
   {
     // Register GATT attribute list and CBs with GATT Server App
@@ -373,6 +394,12 @@ bStatus_t SimpleProfile_SetParameter( uint8 param, uint8 len, void *value )
         // This is a single character value indicating the status of the result
         if (len == RESPONSE_READY_CHAR_LENGTH){
             VOID memcpy( ResponseReadyProfileBuffer, value, RESPONSE_READY_CHAR_LENGTH );
+
+        // See if Notification has been enabled
+        GATTServApp_ProcessCharCfg( ResponseReadyCharConfig, ResponseReadyProfileBuffer, FALSE,
+                                    simpleProfileAttrTbl, GATT_NUM_ATTRS( simpleProfileAttrTbl ),
+                                    INVALID_TASK_ID, simpleProfile_ReadAttrCB );
+
         } else {
             ret = bleInvalidRange;
         }
