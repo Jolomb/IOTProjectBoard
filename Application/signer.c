@@ -2,9 +2,12 @@
 #include <time.h>
 #include <stdlib.h>
 #include <driverlib/trng.h>
-
+#include <driverlib/prcm.h>
+#include <ti/drivers/Power.h>
+#include <ti/drivers/power/PowerCC26XX.h>
 
 #include "signer.h"
+#include "Board.h"
 
 #include "mbedtls/pk.h"
 #include "mbedtls/md.h"
@@ -38,8 +41,10 @@ const unsigned char keyBuffer[PRIVATE_KEY_BUFFER_LEN] = {
 
 int initialize_TRNG() {
 
+    Power_setDependency(PowerCC26XX_PERIPH_TRNG);
+
     // Maximum entropy in each number generated
-    TRNGConfigure(0, 0, 0);
+    TRNGConfigure(0, 256, 0);
     TRNGEnable();
 
     return 0;
@@ -69,6 +74,10 @@ void RSA_init() {
         rsa_state = 0;
 
     }
+
+    // Initialize the random number generator
+    initialize_TRNG();
+
     System_printf("RSA init ok: %d\n", rsa_state);
 
     return;

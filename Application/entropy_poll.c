@@ -19,6 +19,10 @@
  *  This file is part of mbed TLS (https://tls.mbed.org)
  */
 
+#include <driverlib/trng.h>
+#include <ti/sysbios/knl/Task.h>
+#include <string.h>
+
 #if !defined(MBEDTLS_CONFIG_FILE)
 #include "mbedtls/config.h"
 #else
@@ -248,6 +252,14 @@ int mbedtls_hardware_poll( void *data,
                            unsigned char *output, size_t len, size_t *olen ) {
 
     uint32_t r = 1;
+    uint32_t trng_status = TRNGStatusGet();
+    while ( !(trng_status & TRNG_NUMBER_READY) ) {
+        // Wait until a new number is ready...
+        Task_sleep(200);
+        trng_status = TRNGStatusGet();
+    }
+
+    r = TRNGNumberGet(TRNG_LOW_WORD);
     memcpy( output, &r, sizeof(uint32_t));
     *olen = sizeof(uint32_t);
     return 0;

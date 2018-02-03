@@ -538,7 +538,7 @@ static void SimpleBLEPeripheral_init(void)
    // Initialize GATT attributes
   GGS_AddService(GATT_ALL_SERVICES);           // GAP
   GATTServApp_AddService(GATT_ALL_SERVICES);   // GATT attributes
-  DevInfo_AddService();                        // Device Information Service
+  //DevInfo_AddService();                        // Device Information Service
   System_printf("GATT services set\n");
 
 #ifndef FEATURE_OAD_ONCHIP
@@ -961,7 +961,7 @@ static void SimpleBLEPeripheral_processStateChangeEvt(gaprole_States_t newState)
         systemId[6] = ownAddress[4];
         systemId[5] = ownAddress[3];
 
-        DevInfo_SetParameter(DEVINFO_SYSTEM_ID, DEVINFO_SYSTEM_ID_LEN, systemId);
+        //DevInfo_SetParameter(DEVINFO_SYSTEM_ID, DEVINFO_SYSTEM_ID_LEN, systemId);
 
         // Display device address
         Display_print0(dispHandle, 1, 0, Util_convertBdAddr2Str(ownAddress));

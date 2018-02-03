@@ -410,7 +410,7 @@ int mbedtls_rsa_private( mbedtls_rsa_context *ctx,
 #endif
 
     //TODO: REMOVE THIS. IT MEANS WE DON'T BLIND!
-    f_rng = NULL;
+    //f_rng = NULL;
 
     /* Make sure we have private key info, prevent possible misuse */
     if( ctx->P.p == NULL || ctx->Q.p == NULL || ctx->D.p == NULL )
@@ -503,7 +503,7 @@ int mbedtls_rsa_private( mbedtls_rsa_context *ctx,
     }
 
 #if defined(MBEDTLS_RSA_NO_CRT)
-    MBEDTLS_MPI_CHK( mbedtls_mpi_exp_mod( &T, &T, D, &ctx->N, &ctx->RN ) );
+    MBEDTLS_MPI_CHK( mbedtls_mpi_exp_mod( &T[0], &T[0], D, &ctx->N, &ctx->RN ) );
 #else
     /*
      * Faster decryption using the CRT
