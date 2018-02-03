@@ -74,7 +74,7 @@
  * CONSTANTS
  */
 
-#define SERVAPP_NUM_ATTR_SUPPORTED        8
+#define SERVAPP_NUM_ATTR_SUPPORTED        11
 
 /*********************************************************************
  * TYPEDEFS
@@ -89,16 +89,19 @@ CONST uint8 simpleProfileServUUID[ATT_BT_UUID_SIZE] =
   LO_UINT16(SIMPLEPROFILE_SERV_UUID), HI_UINT16(SIMPLEPROFILE_SERV_UUID)
 };
 
-// Characteristic 1 UUID: 0xFFF1
 CONST uint8 UserChallangeProfileCharUUID[ATT_BT_UUID_SIZE] =
 { 
   LO_UINT16(USER_CHALLANGE_UUID), HI_UINT16(USER_CHALLANGE_UUID)
 };
 
-// Characteristic 2 UUID: 0xFFF2
 CONST uint8 ServerResponseProfileCharUUID[ATT_BT_UUID_SIZE] =
 { 
   LO_UINT16(SERVER_RESPONSE_UUID), HI_UINT16(SERVER_RESPONSE_UUID)
+};
+
+CONST uint8 ResponseReadyProfileCharUUID[ATT_BT_UUID_SIZE] =
+{
+  LO_UINT16(RESPONSE_READY_UUID), HI_UINT16(RESPONSE_READY_UUID)
 };
 
 /*********************************************************************
@@ -141,6 +144,15 @@ static uint8 ServerResonseProfileBuffer[SERVER_RESPONSE_CHAR_LENGTH] = "";
 
 // Simple Profile Characteristic 2 User Description
 static uint8 ServerResponseProfileDesp[16] = "Server Response";
+
+// Simple Profile Characteristic 2 Properties
+static uint8 ResponseReadyProfileCharProps = GATT_PROP_READ | GATT_PROP_WRITE;
+
+// Characteristic 2 Value
+static uint8 ResponseReadyProfileBuffer[RESPONSE_READY_CHAR_LENGTH] = "";
+
+// Simple Profile Characteristic 2 User Description
+static uint8 ResponseReadyProfileDesp[16] = "Response Status";
 
 /*********************************************************************
  * Profile Attributes - Table
@@ -203,6 +215,30 @@ static gattAttribute_t simpleProfileAttrTbl[SERVAPP_NUM_ATTR_SUPPORTED] =
         0, 
         ServerResponseProfileDesp
       },           
+
+      // Characteristic 3 Declaration
+      {
+        { ATT_BT_UUID_SIZE, characterUUID },
+        GATT_PERMIT_READ,
+        0,
+        &ResponseReadyProfileCharProps
+      },
+
+        // Characteristic Value 3
+        {
+          { ATT_BT_UUID_SIZE, ResponseReadyProfileCharUUID },
+          GATT_PERMIT_READ | GATT_PERMIT_WRITE,
+          0,
+          ResponseReadyProfileBuffer
+        },
+
+        // Characteristic 3 User Description
+        {
+          { ATT_BT_UUID_SIZE, charUserDescUUID },
+          GATT_PERMIT_READ,
+          0,
+          ResponseReadyProfileDesp
+        },
 };
 
 /*********************************************************************
@@ -316,8 +352,7 @@ bStatus_t SimpleProfile_SetParameter( uint8 param, uint8 len, void *value )
   switch ( param )
   {
     case USER_CHALLANGE_CHAR_VALUE:
-      if ( len == USER_CHALLANGE_CHAR_LENGTH )
-      {
+      if ( len == USER_CHALLANGE_CHAR_LENGTH ) {
          VOID memcpy( UserChllangeProfileBuffer, value, USER_CHALLANGE_CHAR_LENGTH );
       }
       else
@@ -327,15 +362,20 @@ bStatus_t SimpleProfile_SetParameter( uint8 param, uint8 len, void *value )
       break;
 
     case SERVER_RESPONSE_CHAR_VALUE:
-      if ( len == SERVER_RESPONSE_CHAR_LENGTH )
-      {
+      if ( len == SERVER_RESPONSE_CHAR_LENGTH ) {
          VOID memcpy( ServerResonseProfileBuffer, value, SERVER_RESPONSE_CHAR_LENGTH );
-      }
-      else
-      {
+      } else {
         ret = bleInvalidRange;
       }
       break;
+
+    case RESPONSE_READY_CHAR_VALUE:
+        // This is a single character value indicating the status of the result
+        if (len == RESPONSE_READY_CHAR_LENGTH){
+            VOID memcpy( ResponseReadyProfileBuffer, value, RESPONSE_READY_CHAR_LENGTH );
+        } else {
+            ret = bleInvalidRange;
+        }
 
     default:
       ret = INVALIDPARAMETER;
@@ -370,6 +410,9 @@ bStatus_t SimpleProfile_GetParameter( uint8 param, void *value )
     case SERVER_RESPONSE_CHAR_VALUE:
       VOID memcpy( value, ServerResonseProfileBuffer, SERVER_RESPONSE_CHAR_LENGTH );
       break;      
+    case RESPONSE_READY_CHAR_VALUE:
+      VOID memcpy( value, ResponseReadyProfileBuffer , RESPONSE_READY_CHAR_LENGTH );
+      break;
   }
   
   return ( ret );
@@ -413,6 +456,10 @@ static bStatus_t simpleProfile_ReadAttrCB(uint16_t connHandle,
 
       case SERVER_RESPONSE_UUID:
           bytes_left_to_read = SERVER_RESPONSE_CHAR_LENGTH - offset;
+          break;
+
+      case RESPONSE_READY_UUID:
+          bytes_left_to_read = RESPONSE_READY_CHAR_LENGTH - offset;
           break;
 
       default:
@@ -491,13 +538,23 @@ static bStatus_t simpleProfile_WriteAttrCB(uint16_t connHandle,
              
         break;
 
+      case RESPONSE_READY_UUID:
+          // The user wants to tell us he has read the response
+          if ( (offset != 0) || (len != RESPONSE_READY_CHAR_LENGTH) ) {
+              status = ATT_ERR_INVALID_VALUE_SIZE;
+          } else {
+              notifyApp = RESPONSE_READY_CHAR_VALUE;
+              uint8 *pCurValue = (uint8 *)pAttr->pValue;
+              VOID memcpy( pCurValue, pValue, len);
+          }
+          break;
+
       case GATT_CLIENT_CHAR_CFG_UUID:
         status = GATTServApp_ProcessCCCWriteReq( connHandle, pAttr, pValue, len,
                                                  offset, GATT_CLIENT_CFG_NOTIFY );
         break;
         
       default:
-        // Should never get here! (characteristics 2 and 4 do not have write permissions)
         status = ATT_ERR_ATTR_NOT_FOUND;
         break;
     }

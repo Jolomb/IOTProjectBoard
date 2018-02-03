@@ -561,12 +561,15 @@ static void SimpleBLEPeripheral_init(void)
   {
     uint8_t userChallangeCharValue[USER_CHALLANGE_CHAR_LENGTH] = "";
     uint8_t ResponseCharValue[SERVER_RESPONSE_CHAR_LENGTH] = "";
+    uint8_t ResponseReadyCharValue[RESPONSE_READY_CHAR_LENGTH] = { WaitingForChallange };
     memset(ResponseCharValue, 0x40, SERVER_RESPONSE_CHAR_LENGTH);
 
     SimpleProfile_SetParameter(USER_CHALLANGE_CHAR_VALUE, USER_CHALLANGE_CHAR_LENGTH,
                                userChallangeCharValue);
     SimpleProfile_SetParameter(SERVER_RESPONSE_CHAR_VALUE, SERVER_RESPONSE_CHAR_LENGTH,
                                ResponseCharValue);
+    SimpleProfile_SetParameter(RESPONSE_READY_CHAR_VALUE, RESPONSE_READY_CHAR_LENGTH,
+                               ResponseReadyCharValue);
 
   }
 
@@ -1123,6 +1126,7 @@ static void SimpleBLEPeripheral_processCharValueChangeEvt(uint8_t paramID)
 
   uint8 *new_value = NULL;
   size_t output_len = 0;
+  uint8 response_ready_state[1] = "";
 
   unsigned char *signed_result = NULL;
   switch(paramID)
@@ -1144,6 +1148,11 @@ static void SimpleBLEPeripheral_processCharValueChangeEvt(uint8_t paramID)
             // Set the green led to indicate we have a request to sign
             set_red_led(off);
             set_green_led(blinking);
+
+            // Indicate that the state right now is waiting for the user click
+            response_ready_state[0] = PendingUserClick;
+            SimpleProfile_SetParameter(RESPONSE_READY_CHAR_VALUE, RESPONSE_READY_CHAR_LENGTH, response_ready_state);
+
             while (Semaphore_pend(button_sem, BIOS_NO_WAIT)) {
                 // Free up any previously clicked buttons
                 continue;
@@ -1157,13 +1166,19 @@ static void SimpleBLEPeripheral_processCharValueChangeEvt(uint8_t paramID)
                     System_printf("Signature is too long!\n");
                     set_red_led(on);
                     set_green_led(off);
+                    response_ready_state[0] = ResponseNotReady;
+                    SimpleProfile_SetParameter(RESPONSE_READY_CHAR_VALUE, RESPONSE_READY_CHAR_LENGTH, response_ready_state);
                 } else{
                     SimpleProfile_SetParameter(SERVER_RESPONSE_CHAR_VALUE, SERVER_RESPONSE_CHAR_LENGTH, signed_result);
                     set_green_led(on);
                     set_red_led(off);
+                    response_ready_state[0] = ResponseReady;
+                    SimpleProfile_SetParameter(RESPONSE_READY_CHAR_VALUE, RESPONSE_READY_CHAR_LENGTH, response_ready_state);
                 }
             } else {
                 // This means the user failed to click the sign button
+                response_ready_state[0] = ResponseNotReady;
+                SimpleProfile_SetParameter(RESPONSE_READY_CHAR_VALUE, RESPONSE_READY_CHAR_LENGTH, response_ready_state);
                 set_green_led(off);
                 set_red_led(blinking);
             }
@@ -1175,6 +1190,18 @@ challange_cleanup:
             free(signed_result);
 
         break;
+
+    case RESPONSE_READY_CHAR_VALUE:
+        // This means the user has written a value into the response ready state
+        new_value = calloc(1, RESPONSE_READY_CHAR_LENGTH);
+        if (!new_value) {
+            System_printf("Failed to alloacte memory for the new user challange\n");
+            goto challange_cleanup;
+        }
+        SimpleProfile_GetParameter(RESPONSE_READY_CHAR_VALUE, new_value);
+        // This means the user has read the previous result
+        set_green_led(off);
+        set_red_led(off);
 
     case SERVER_RESPONSE_CHAR_VALUE:
         //TODO:

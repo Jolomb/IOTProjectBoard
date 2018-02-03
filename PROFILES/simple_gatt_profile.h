@@ -62,8 +62,9 @@ extern "C"
  */
 
 // Profile Parameters
-#define USER_CHALLANGE_CHAR_VALUE                   0  // RW uint8 - Profile Characteristic 1 value
-#define SERVER_RESPONSE_CHAR_VALUE                  1  // RW uint8 - Profile Characteristic 2 value
+#define USER_CHALLANGE_CHAR_VALUE                   0
+#define SERVER_RESPONSE_CHAR_VALUE                  1
+#define RESPONSE_READY_CHAR_VALUE                   2
   
 // Simple Profile Service UUID
 #define SIMPLEPROFILE_SERV_UUID               0xFFF0
@@ -71,18 +72,28 @@ extern "C"
 // Key Pressed UUID
 #define USER_CHALLANGE_UUID                 0xFFF1
 #define SERVER_RESPONSE_UUID                0xFFF2
-  
+#define RESPONSE_READY_UUID                 0xFFF3
+
 // Simple Keys Profile Services bit fields
 #define SIMPLEPROFILE_SERVICE               0x00000001
 
 #define USER_CHALLANGE_CHAR_LENGTH        16
 #define SERVER_RESPONSE_CHAR_LENGTH       128
+#define RESPONSE_READY_CHAR_LENGTH        1
 
 /*********************************************************************
  * TYPEDEFS
  */
 
-  
+typedef enum ResponseReadyStatus {
+    ResponseReady = 'R',
+    ResponseRead = 'D',
+    ResponseNotReady = 'N',
+    PendingUserClick = 'P',
+    WaitingForChallange = 'W'
+} response_ready_status_t;
+
+
 /*********************************************************************
  * MACROS
  */
