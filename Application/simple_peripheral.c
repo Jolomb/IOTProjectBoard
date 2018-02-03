@@ -55,6 +55,7 @@
 #include <ti/sysbios/knl/Clock.h>
 #include <ti/sysbios/knl/Semaphore.h>
 #include <ti/sysbios/knl/Queue.h>
+#include <ti/sysbios/bios.h>
 
 #include "hci_tl.h"
 #include "gatt.h"
@@ -179,7 +180,7 @@
 #endif // FEATURE_OAD
 
 // Task configuration
-#define SBP_TASK_PRIORITY                     1
+#define SBP_TASK_PRIORITY                     2
 
 
 #ifndef SBP_TASK_STACK_SIZE
@@ -1121,6 +1122,8 @@ static void SimpleBLEPeripheral_processCharValueChangeEvt(uint8_t paramID)
 #ifndef FEATURE_OAD_ONCHIP
 
   uint8 *new_value = NULL;
+  size_t output_len = 0;
+
   unsigned char *signed_result = NULL;
   switch(paramID)
   {
@@ -1133,22 +1136,36 @@ static void SimpleBLEPeripheral_processCharValueChangeEvt(uint8_t paramID)
         SimpleProfile_GetParameter(USER_CHALLANGE_CHAR_VALUE, new_value);
 
         // Sign the challange we got from the server
-        size_t output_len = MBEDTLS_MPI_MAX_SIZE;
+        output_len = MBEDTLS_MPI_MAX_SIZE;
         signed_result = calloc(1, output_len);
         if (!signed_result) {
             System_printf("Failled to allocate memory for PKCS output buffer\n");
         } else {
-            RSA_sign(new_value, USER_CHALLANGE_CHAR_LENGTH, signed_result, &output_len);
-            if (output_len > SERVER_RESPONSE_CHAR_LENGTH) {
-                System_printf("Signature is too long!\n");
-                set_red_led(true);
-                set_green_led(false);
-            } else{
-                SimpleProfile_SetParameter(SERVER_RESPONSE_CHAR_VALUE, SERVER_RESPONSE_CHAR_LENGTH, signed_result);
-                set_green_led(true);
-                set_red_led(false);
+            // Set the green led to indicate we have a request to sign
+            set_green_led(blinking);
+            while (Semaphore_pend(button_sem, BIOS_NO_WAIT)) {
+                // Free up any previously clicked buttons
+                continue;
             }
+            if (Semaphore_pend(button_sem, SIGN_BUTTON_TIMEOUT)) {
+                // Turn off the blinking to free up the space used by the blinking task
+                set_green_led(off);
 
+                RSA_sign(new_value, USER_CHALLANGE_CHAR_LENGTH, signed_result, &output_len);
+                if (output_len > SERVER_RESPONSE_CHAR_LENGTH) {
+                    System_printf("Signature is too long!\n");
+                    set_red_led(on);
+                    set_green_led(off);
+                } else{
+                    SimpleProfile_SetParameter(SERVER_RESPONSE_CHAR_VALUE, SERVER_RESPONSE_CHAR_LENGTH, signed_result);
+                    set_green_led(on);
+                    set_red_led(off);
+                }
+            } else {
+                // This means the user failed to click the sign button
+                set_green_led(off);
+                set_red_led(blinking);
+            }
         }
 challange_cleanup:
         if (new_value)
