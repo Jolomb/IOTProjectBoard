@@ -1142,6 +1142,7 @@ static void SimpleBLEPeripheral_processCharValueChangeEvt(uint8_t paramID)
             System_printf("Failled to allocate memory for PKCS output buffer\n");
         } else {
             // Set the green led to indicate we have a request to sign
+            set_red_led(off);
             set_green_led(blinking);
             while (Semaphore_pend(button_sem, BIOS_NO_WAIT)) {
                 // Free up any previously clicked buttons

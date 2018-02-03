@@ -61,9 +61,14 @@
 
 #include "simple_gatt_profile.h"
 
+
 /*********************************************************************
  * MACROS
  */
+
+#ifndef min
+#define min(a, b)               (((a) < (b)) ? (a) : (b))
+#endif
 
 /*********************************************************************
  * CONSTANTS
@@ -392,12 +397,7 @@ static bStatus_t simpleProfile_ReadAttrCB(uint16_t connHandle,
                                           uint8_t method)
 {
   bStatus_t status = SUCCESS;
-  
-  // Make sure it's not a blob operation (no attributes in the profile are long)
-  if ( offset > 0 )
-  {
-    return ( ATT_ERR_ATTR_NOT_LONG );
-  }
+  uint16_t bytes_left_to_read;
  
   if ( pAttr->type.len == ATT_BT_UUID_SIZE )
   {
@@ -407,28 +407,24 @@ static bStatus_t simpleProfile_ReadAttrCB(uint16_t connHandle,
     {
       // No need for "GATT_SERVICE_UUID" or "GATT_CLIENT_CHAR_CFG_UUID" cases;
       // gattserverapp handles those reads
-
-      // characteristics 1 and 2 have read permissions
-      // characteritisc 3 does not have read permissions; therefore it is not
-      //   included here
-      // characteristic 4 does not have read permissions, but because it
-      //   can be sent as a notification, it is included here
       case USER_CHALLANGE_UUID:
-        *pLen = USER_CHALLANGE_CHAR_LENGTH;
-        VOID memcpy( pValue, pAttr->pValue, USER_CHALLANGE_CHAR_LENGTH );
-        break;
+          bytes_left_to_read = USER_CHALLANGE_CHAR_LENGTH - offset;
+          break;
 
       case SERVER_RESPONSE_UUID:
-          *pLen = SERVER_RESPONSE_CHAR_LENGTH;
-          VOID memcpy( pValue, pAttr->pValue, SERVER_RESPONSE_CHAR_LENGTH );
+          bytes_left_to_read = SERVER_RESPONSE_CHAR_LENGTH - offset;
           break;
 
       default:
-        // Should never get here! (characteristics 3 and 4 do not have read permissions)
-        *pLen = 0;
+        bytes_left_to_read = 0;
         status = ATT_ERR_ATTR_NOT_FOUND;
         break;
     }
+
+    // Copy the request value to the correct buffer
+    bytes_left_to_read = min(bytes_left_to_read, maxLen);
+    *pLen = bytes_left_to_read;
+    VOID memcpy( pValue, pAttr->pValue, bytes_left_to_read );
   }
   else
   {
