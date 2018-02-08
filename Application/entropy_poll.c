@@ -255,7 +255,7 @@ int mbedtls_hardware_poll( void *data,
     uint32_t trng_status = TRNGStatusGet();
     while ( !(trng_status & TRNG_NUMBER_READY) ) {
         // Wait until a new number is ready...
-        Task_sleep(200);
+        Task_sleep(2);
         trng_status = TRNGStatusGet();
     }
 
