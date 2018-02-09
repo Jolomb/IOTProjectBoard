@@ -41,11 +41,8 @@ const unsigned char keyBuffer[PRIVATE_KEY_BUFFER_LEN] = {
 
 int initialize_TRNG() {
 
-    Power_setDependency(PowerCC26XX_PERIPH_TRNG);
-
-    // Maximum entropy in each number generated
-    TRNGConfigure(0, 256, 0);
-    TRNGEnable();
+    //Power_setDependency(PowerCC26XX_PERIPH_TRNG);
+    //TRNGEnable();
 
     return 0;
 }

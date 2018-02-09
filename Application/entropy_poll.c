@@ -22,6 +22,8 @@
 #include <driverlib/trng.h>
 #include <ti/sysbios/knl/Task.h>
 #include <string.h>
+#include <ti/drivers/Power.h>
+#include <ti/drivers/power/PowerCC26XX.h>
 
 #if !defined(MBEDTLS_CONFIG_FILE)
 #include "mbedtls/config.h"
@@ -252,14 +254,20 @@ int mbedtls_hardware_poll( void *data,
                            unsigned char *output, size_t len, size_t *olen ) {
 
     uint32_t r = 1;
-    uint32_t trng_status = TRNGStatusGet();
-    while ( !(trng_status & TRNG_NUMBER_READY) ) {
+
+    Power_setDependency(PowerCC26XX_PERIPH_TRNG);
+    TRNGEnable();
+    uint32_t trng_status;
+    do {
         // Wait until a new number is ready...
-        Task_sleep(2);
         trng_status = TRNGStatusGet();
-    }
+        Task_sleep(2);
+    } while ( !(trng_status & TRNG_NUMBER_READY) );
 
     r = TRNGNumberGet(TRNG_LOW_WORD);
+    TRNGDisable();
+    Power_releaseDependency(PowerCC26XX_PERIPH_TRNG);
+
     memcpy( output, &r, sizeof(uint32_t));
     *olen = sizeof(uint32_t);
     return 0;
