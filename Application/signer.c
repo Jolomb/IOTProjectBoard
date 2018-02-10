@@ -40,10 +40,7 @@ const unsigned char keyBuffer[PRIVATE_KEY_BUFFER_LEN] = {
 };
 
 int initialize_TRNG() {
-
-    //Power_setDependency(PowerCC26XX_PERIPH_TRNG);
-    //TRNGEnable();
-
+    // No need to do anything actually...
     return 0;
 }
 
