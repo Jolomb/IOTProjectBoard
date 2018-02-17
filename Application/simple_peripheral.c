@@ -1171,6 +1171,7 @@ static void SimpleBLEPeripheral_processCharValueChangeEvt(uint8_t paramID)
                     response_ready_state[0] = ResponseNotReady;
 
                     // Notify the error code...
+                    memset(signed_result, 0x0, output_len);
                     memcpy(signed_result, &return_value, sizeof(return_value));
                     SimpleProfile_SetParameter(SERVER_RESPONSE_CHAR_VALUE, SERVER_RESPONSE_CHAR_LENGTH, signed_result);
                 }
