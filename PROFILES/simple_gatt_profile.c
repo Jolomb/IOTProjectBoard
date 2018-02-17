@@ -539,9 +539,6 @@ static bStatus_t simpleProfile_WriteAttrCB(uint16_t connHandle,
     switch ( uuid )
     {
       case USER_CHALLANGE_UUID:
-
-        //Validate the value
-        // Make sure it's not a blob
         if ( offset == 0 )
         {
           if ( len >  USER_CHALLANGE_CHAR_LENGTH )
