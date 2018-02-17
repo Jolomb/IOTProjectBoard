@@ -94,7 +94,7 @@ int AES_encrypt(const unsigned char *input, size_t input_len, unsigned char *out
 
 int RSA_sign(const unsigned char *input, size_t input_len, unsigned char *output_buf, size_t *output_len) {
     // Will be used to check all sort of return values
-    int ret;
+    int ret = 0;
 
     // We use a random counter mode to sign the message
     // Allocate on the heap to save stack memory
@@ -108,7 +108,8 @@ int RSA_sign(const unsigned char *input, size_t input_len, unsigned char *output
     entropy = calloc(1, sizeof(mbedtls_entropy_context));
     ctr_drbg = calloc(1, sizeof(mbedtls_ctr_drbg_context));
     if ( (!entropy) || (!ctr_drbg) ) {
-        System_printf("Failed to allocate heap memory for Entropy");
+        //Failed to allocate heap memory for Entropy
+        ret = MBEDTLS_ERR_CTR_DRBG_REQUEST_TOO_BIG;
         goto error_cleanup;
     }
     mbedtls_entropy_init( entropy );
@@ -121,33 +122,35 @@ int RSA_sign(const unsigned char *input, size_t input_len, unsigned char *output
                                  entropy,
                                  NULL, 0);
     if (ret != 0) {
-           System_printf("Failed to seed the entropy source\n");
-           goto error_cleanup;
+           //Failed to seed the entropy source
+            goto error_cleanup;
        }
 
     // SHA256 requires 32 bytes on the stack!
     input_hash = calloc(32, sizeof(unsigned char));
     if ( input_hash == NULL ){
-        System_printf("Failed to allocate buffer for HASH from heap\n");
+        //Failed to allocate buffer for HASH from heap
+        ret = MBEDTLS_ERR_MD_ALLOC_FAILED;
         goto error_cleanup;
     }
 
     if ( is_RSA_read() != 0 ) {
         // We can't start encrypting before we have set the RSA key state
-        System_printf("Can't perform pk_sign before we initialize the PK\n");
+        //Can't perform pk_sign before we initialize the PK
+        ret = MBEDTLS_ERR_RSA_KEY_GEN_FAILED;
         goto error_cleanup;
     }
 
     // Perform SHA256 to the input data
     ret = mbedtls_md( mbedtls_md_info_from_type( MBEDTLS_MD_SHA256 ), input, input_len, input_hash);
     if ( ret != 0) {
-        System_printf("SHA256 failed on input\n");
+        //SHA256 failed on input
         goto error_cleanup;
     }
-    System_printf("SHA256 done on input of length %d\n", input_len);
+    //SHA256 done on input
 
     if ( (!output_buf) || (!output_len) || (*output_len < MBEDTLS_MPI_MAX_SIZE)) {
-        System_printf("Output buffer argument incorrect\n");
+        //Output buffer argument incorrect
         ret = MBEDTLS_ERR_MPI_ALLOC_FAILED;
         goto error_cleanup;
     }
@@ -161,12 +164,9 @@ int RSA_sign(const unsigned char *input, size_t input_len, unsigned char *output
                            mbedtls_ctr_drbg_random,
                            ctr_drbg);
 
-    System_printf("Finished RSA_sign\n");
-    ret = 0;
     goto cleanup;
 
 error_cleanup:
-    ret = -1;
 cleanup:
     if (input_hash)
         free(input_hash);

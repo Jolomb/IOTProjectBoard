@@ -498,7 +498,7 @@ static bStatus_t simpleProfile_ReadAttrCB(uint16_t connHandle,
     // Copy the request value to the correct buffer
     bytes_left_to_read = min(bytes_left_to_read, maxLen);
     *pLen = bytes_left_to_read;
-    VOID memcpy( pValue, pAttr->pValue, bytes_left_to_read );
+    VOID memcpy( pValue, &(pAttr->pValue[offset]), bytes_left_to_read );
   }
   else
   {

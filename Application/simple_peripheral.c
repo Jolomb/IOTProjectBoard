@@ -1128,6 +1128,8 @@ static void SimpleBLEPeripheral_processCharValueChangeEvt(uint8_t paramID)
   size_t output_len = 0;
   uint8 response_ready_state[1] = "";
 
+  int return_value = 0;
+
   unsigned char *signed_result = NULL;
   switch(paramID)
   {
@@ -1161,27 +1163,37 @@ static void SimpleBLEPeripheral_processCharValueChangeEvt(uint8_t paramID)
                 // Turn off the blinking to free up the space used by the blinking task
                 set_green_led(off);
 
-                RSA_sign(new_value, USER_CHALLANGE_CHAR_LENGTH, signed_result, &output_len);
-                if (output_len > SERVER_RESPONSE_CHAR_LENGTH) {
-                    System_printf("Signature is too long!\n");
+                return_value = RSA_sign(new_value, USER_CHALLANGE_CHAR_LENGTH, signed_result, &output_len);
+                if (return_value != 0) {
+                    //Signing failed!
+                    set_green_led(off);
+                    set_red_led(blinking);
+                    response_ready_state[0] = ResponseNotReady;
+
+                    // Notify the error code...
+                    memcpy(signed_result, &return_value, sizeof(return_value));
+                    SimpleProfile_SetParameter(SERVER_RESPONSE_CHAR_VALUE, SERVER_RESPONSE_CHAR_LENGTH, signed_result);
+                }
+                else if (output_len > SERVER_RESPONSE_CHAR_LENGTH) {
+                    //Signature is too long
                     set_red_led(on);
                     set_green_led(off);
                     response_ready_state[0] = ResponseNotReady;
-                    SimpleProfile_SetParameter(RESPONSE_READY_CHAR_VALUE, RESPONSE_READY_CHAR_LENGTH, response_ready_state);
                 } else{
+                    // Success!
                     SimpleProfile_SetParameter(SERVER_RESPONSE_CHAR_VALUE, SERVER_RESPONSE_CHAR_LENGTH, signed_result);
                     set_green_led(on);
                     set_red_led(off);
                     response_ready_state[0] = ResponseReady;
-                    SimpleProfile_SetParameter(RESPONSE_READY_CHAR_VALUE, RESPONSE_READY_CHAR_LENGTH, response_ready_state);
                 }
             } else {
                 // This means the user failed to click the sign button
                 response_ready_state[0] = ResponseNotReady;
-                SimpleProfile_SetParameter(RESPONSE_READY_CHAR_VALUE, RESPONSE_READY_CHAR_LENGTH, response_ready_state);
                 set_green_led(off);
                 set_red_led(blinking);
             }
+            // Update the current state
+            SimpleProfile_SetParameter(RESPONSE_READY_CHAR_VALUE, RESPONSE_READY_CHAR_LENGTH, response_ready_state);
         }
 challange_cleanup:
         if (new_value)
